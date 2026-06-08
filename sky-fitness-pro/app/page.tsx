@@ -1,24 +1,48 @@
 import { getCourses } from '@/lib/api';
+import { CourseCard } from '@/components/ui/CourseCard/CourseCard';
+import { Header } from '@/components/ui/Header/Header';
+import { Footer } from '@/components/ui/Footer/Footer';
+import Image from 'next/image';
+import styles from './page.module.css';
 
 export default async function HomePage() {
-  // const courses = await getCourses(); // раскомментируем позже
+  const courses = await getCourses();
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">Курсы</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="col-span-full text-center text-gray-500">
-          Курсы загружаются...
-        </div>
-      </div>
+    <div className="min-h-screen flex flex-col">
+      <Header />
 
-      <button
-        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-        className="fixed bottom-6 right-6 p-3 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-colors z-50"
-        aria-label="Наверх"
-      >
-        ↑
-      </button>
+      <main className={styles.page}>
+        <div className={styles.container}>
+          <div className={styles.titleWithImage}>
+            <h1 className={styles.title}>
+              Начните заниматься спортом <br /> и улучшите качество жизни
+            </h1>
+            <Image
+              src="/images/slogan.png"
+              alt="SkyFitnessPro slogan"
+              width={300}
+              height={150}
+              className={styles.image}
+            />
+          </div>
+
+          <div className={styles.grid}>
+            {courses.map((course) => (
+              <CourseCard
+                key={course.id}
+                id={course.id}
+                title={course.title}
+                description={course.description}
+                price={course.price}
+                image={course.image}
+              />
+            ))}
+          </div>
+        </div>
+      </main>
+
+      <Footer />
     </div>
   );
 }
