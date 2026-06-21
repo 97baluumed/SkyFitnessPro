@@ -22,3 +22,28 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# ... existing rules ...
+
+# Сборки и кэш
+.next/
+dist/
+out/
+build/
+
+# Зависимости
+node_modules/
+
+# Логи и временные файлы
+*.log
+.env
+.env.local
+
+# IDE и VSCode
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Кэш Next.js, Vite и других сборщиков
+.cache/
