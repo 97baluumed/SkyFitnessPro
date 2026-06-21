@@ -42,7 +42,6 @@ function Profile() {
 
 	const refetchCourses = useCallback(async () => {
 		if (!user?.selectedCourses || user.selectedCourses.length === 0) {
-			console.log("📦 0. selectedCourses пустой или undefined");
 			setCourseInfoArray([]);
 			return;
 		}
@@ -184,7 +183,6 @@ function Profile() {
 
 						<div className="flex flex-col items-start mb-[20px] sm:mb-[30px]">
 							<p>Логин: {user?.email}</p>
-							<p>Пароль: **********</p>
 						</div>
 
 						<div className="flex-col flex sm:flex-row gap-[10px]">

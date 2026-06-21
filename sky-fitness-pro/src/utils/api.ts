@@ -1,6 +1,5 @@
 const API_BASE = "https://wedev-api.sky.pro/api/fitness";
 
-// === Аутентификация ===
 export const registerUser = async (email: string, password: string) => {
 	const res = await fetch(`${API_BASE}/auth/register`, {
 		method: "POST",
@@ -42,7 +41,6 @@ export const getCurrentUser = async (token: string) => {
 	return await res.json();
 };
 
-// === Курсы ===
 export const getCourses = async () => {
 	const res = await fetch(`${API_BASE}/courses`);
 	return await res.json();
@@ -70,7 +68,7 @@ export const getWorkoutsByCourse = async (courseId: string, token?: string) => {
 	if (token) {
 		headers.Authorization = `Bearer ${token}`;
 	} else {
-		console.warn("⚠️ Токен не передан! headers:", headers);
+		console.warn("Токен не передан! headers:", headers);
 	}
 
 	const res = await fetch(`${API_BASE}/courses/${courseId}/workouts`, {
@@ -79,7 +77,7 @@ export const getWorkoutsByCourse = async (courseId: string, token?: string) => {
 
 	if (!res.ok) {
 		const errorText = await res.text();
-		console.error("❌ Ошибка API:", res.status, errorText);
+		console.error("Ошибка API:", res.status, errorText);
 		throw new Error(`Ошибка при получении тренировок курса ${courseId}: ${errorText}`);
 	}
 
@@ -88,7 +86,6 @@ export const getWorkoutsByCourse = async (courseId: string, token?: string) => {
 
 export const getWorkoutsById = getWorkoutsByCourse;
 
-// === Курсы пользователя ===
 export const addCourseToUser = async (token: string, courseId: string) => {
 	if (!courseId) {
 		throw new Error("courseId is required");
@@ -135,7 +132,7 @@ export const removeCourseFromUser = async (token: string, courseId: string): Pro
 
 	if (!res.ok) {
 		const errorText = await res.text();
-		console.error(`❌ Ошибка при удалении курса ${courseId}:`, errorText);
+		console.error(`Ошибка при удалении курса ${courseId}:`, errorText);
 		throw new Error(`Ошибка при удалении курса: ${errorText}`);
 	}
 
@@ -286,5 +283,4 @@ export const addRealQuantity = async (
 	await saveWorkoutProgress(token, courseId, workoutId, progressData);
 };
 
-// Алиасы — для совместимости
 export const getRealQuantity = getRealQuantityWithoutExercises;

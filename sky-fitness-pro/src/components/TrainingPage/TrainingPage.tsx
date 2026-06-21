@@ -38,11 +38,9 @@ function TrainingPage() {
 		}
 
 		const progressData = exercises.map(ex => updatedQuantities[ex.name] ?? 0);
-		console.log("🚀 progressData:", progressData);
 
 		saveWorkoutProgress(user.token, courseId, workout._id, progressData)
 			.then(() => {
-				console.log("Прогресс успешно сохранён");
 				localStorage.setItem("sky_fitness_progress_updated", Date.now().toString());
 
 				getProgress(user.token, courseId, workout._id)

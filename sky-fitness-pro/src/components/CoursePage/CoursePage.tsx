@@ -81,7 +81,7 @@ function CoursePage({ openModal }: CoursePageProps) {
 					setIsButtonDisabled(courseExists);
 				}
 			} catch (e) {
-				console.warn("⚠️ Не удалось обновить selectedCourses из API", e);
+				console.warn("Не удалось обновить selectedCourses из API", e);
 			}
 		};
 
