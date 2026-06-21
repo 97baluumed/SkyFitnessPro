@@ -1,0 +1,15 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`TrainingSelectModal matches the snapshot 1`] = `
+<DocumentFragment>
+  <div
+    class="fixed z-40 inset-0 flex justify-center items-center bg-gray-900 bg-opacity-50"
+  >
+    <p
+      class="text-black text"
+    >
+      Загрузка
+    </p>
+  </div>
+</DocumentFragment>
+`;

@@ -1,0 +1,13 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`CoursePage snapshot 1`] = `
+<div>
+  <div
+    class="mt-[40px] sm:mt-[60px]"
+  >
+    <p>
+      Загрузка курса...
+    </p>
+  </div>
+</div>
+`;

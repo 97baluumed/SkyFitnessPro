@@ -1,0 +1,22 @@
+<svg width="28.902710" height="19.999878" viewBox="0 0 28.9027 19.9999" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<desc>
+			Created with Pixso.
+	</desc>
+	<defs>
+		<filter id="filter_15_973_dd" x="-1.460754" y="-1.460083" width="20.982529" height="22.921631" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+			<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+			<feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+			<feGaussianBlur stdDeviation="0.487081" result="effect_layerBlur_1"/>
+		</filter>
+	</defs>
+	<path id="Left Triangle" d="M3.68 19.45C1.54 20.69 0 19.66 0 17.82C0 15.87 0 10 0 10C0 10 0 4.13 0 2.17C0 0.33 1.54 -0.7 3.68 0.54C7.03 2.47 17.06 8.26 17.06 8.26C18.39 9.03 18.39 10.96 17.06 11.73C17.06 11.73 7.03 17.52 3.68 19.45Z" fill="#00C1FF" fill-opacity="1.000000" fill-rule="nonzero"/>
+	<path id="Right Triangle" d="M14.72 19.45C12.58 20.69 11.03 19.66 11.03 17.82C11.03 15.86 11.03 9.99 11.03 9.99C11.03 9.99 11.03 4.12 11.03 2.17C11.03 0.33 12.57 -0.7 14.72 0.54C17.99 2.43 27.8 8.09 27.8 8.09C29.26 8.94 29.26 11.05 27.8 11.9C27.8 11.9 17.99 17.56 14.72 19.45Z" fill="#BCEC30" fill-opacity="1.000000" fill-rule="nonzero"/>
+	<mask id="mask15_972" mask-type="alpha" maskUnits="userSpaceOnUse" x="11.038025" y="0.000000" width="17.864685" height="19.999146">
+		<path id="Mask" d="M14.72 19.45C12.58 20.69 11.03 19.66 11.03 17.82C11.03 15.86 11.03 9.99 11.03 9.99C11.03 9.99 11.03 4.12 11.03 2.17C11.03 0.33 12.57 -0.7 14.72 0.54C17.99 2.43 27.8 8.09 27.8 8.09C29.26 8.94 29.26 11.05 27.8 11.9C27.8 11.9 17.99 17.56 14.72 19.45Z" fill="#6FE4FF" fill-opacity="1.000000" fill-rule="nonzero"/>
+	</mask>
+	<g mask="url(#mask15_972)">
+		<g filter="url(#filter_15_973_dd)">
+			<path id="Blur" d="M3.68 19.45C1.54 20.69 0 19.66 0 17.82C0 15.87 0 10 0 10C0 10 0 4.13 0 2.17C0 0.33 1.54 -0.7 3.68 0.54C7.03 2.47 17.06 8.26 17.06 8.26C18.39 9.03 18.39 10.96 17.06 11.73C17.06 11.73 7.03 17.52 3.68 19.45Z" fill="#99D100" fill-opacity="1.000000" fill-rule="nonzero"/>
+		</g>
+	</g>
+</svg>

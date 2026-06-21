@@ -1,0 +1,35 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Main snapshot 1`] = `
+<DocumentFragment>
+  <div
+    class="description flex flex-row mb-[34px] justify-between h-[120px] mt-[39px] sm:mt-[60px] sm:mb-[50px]"
+    id="top"
+  >
+    <h1
+      class="text-[32px] sm:text-[42px] xl:text-[60px] font-medium text-left leading-none"
+    >
+      Начните заниматься спортом и улучшите качество жизни
+    </h1>
+    <img
+      alt="description"
+      class="h-[120px] hidden lg:block"
+      src="./description-img.svg"
+    />
+  </div>
+  <div>
+    <p>
+      Страница загружается
+    </p>
+  </div>
+  <div
+    class="flex flex-row justify-center mt-[34px] mb-[81px]"
+  >
+    <button
+      class="w-[127px] h-[52px] bg-[#BCEC30] rounded-[46px] hover:bg-[#C6FF00] active:bg-[#000000] active:text-[#FFFFFF] text-lg leading-3"
+    >
+      Наверх
+    </button>
+  </div>
+</DocumentFragment>
+`;

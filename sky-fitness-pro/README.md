@@ -1,36 +1,27 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SkyFitnessPro
 
-## Getting Started
+В этом репозитории реализовано Фитнес приложение SkyFitnessPro
 
-First, run the development server:
+Проект задеплоен на Netlify - https://bucolic-faun-11520b.netlify.app
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Разработка
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Проект реализован с использованием TypeScript и React.js
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Как разрабатывать
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Установите зависимости командой `npm install`
+- Запустите dev сервер `npm run dev`
+- Откройте адрес в браузере
 
-## Learn More
+### Стек и инструменты
 
-To learn more about Next.js, take a look at the following resources:
+Для стилей в коде используются Tailwind CSS.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Доступные команды
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+#### `npm run dev`
 
-## Deploy on Vercel
+Запускает приложение в режиме разработки.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Откройте [http://localhost:5173/](http://localhost:5173/) чтобы посмотреть его в браузере.
