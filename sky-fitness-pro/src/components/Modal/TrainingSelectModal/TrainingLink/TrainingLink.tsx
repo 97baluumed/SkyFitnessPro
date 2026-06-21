@@ -1,41 +1,91 @@
-import { useEffect, useState } from "react";
+// src/components/TrainingSelectModal/TrainingLink/TrainingLink.tsx
+
 import { Link } from "react-router-dom";
-import { getRealQuantityWithoutExercises } from "../../../../utils/api";
-import { useUser } from "../../../../hooks/useUser";
+import { getProgress } from "../../../../utils/api";
+import { useState, useEffect } from "react";
+import { useUser } from "../../../../contexts/user";
+import { Exercise } from "../../../../types/training";
 
 interface TrainingLinkProps {
-	name: string;
 	trainingId: string;
+	name: string;
 	courseId: string;
+	exercises: Exercise[]; // ✅ Теперь передаём упражнения
 }
 
-function TrainingLink({ name, trainingId, courseId }: TrainingLinkProps) {
-	const [completedTraining, setCompletedTraining] = useState(false);
+const TrainingLink: React.FC<TrainingLinkProps> = ({ trainingId, name, courseId, exercises }) => {
 	const { user } = useUser();
+	const [progressStatus, setProgressStatus] = useState<"not-started" | "started" | "completed">("not-started");
 
 	useEffect(() => {
-		if (user?.uid) {
-			// Проверка на null
-			getRealQuantityWithoutExercises(user.uid, courseId, trainingId)
-				.then((data) => {
-					if (data !== null) {
-						setCompletedTraining(true);
+		if (!user?.token?.trim() || exercises.length === 0) return;
+
+		getProgress(user.token, courseId, trainingId)
+			.then((data) => {
+				// Если нет прогресса
+				if (!data || (!Array.isArray(data?.progressData) && typeof data?.progress !== "number")) {
+					setProgressStatus("not-started");
+					return;
+				}
+
+				// Прогресс как массив
+				if (Array.isArray(data?.progressData)) {
+					const progressData = data.progressData;
+					// ✅ Добавлены типы: q: number, i: number
+					const isFullyCompleted = progressData.every(
+						(q: number, i: number) => q >= (exercises[i]?.quantity || 0)
+					);
+					const hasAnyProgress = progressData.some((q: number) => q > 0);
+
+					if (isFullyCompleted) {
+						setProgressStatus("completed");
+					} else if (hasAnyProgress) {
+						setProgressStatus("started");
+					} else {
+						setProgressStatus("not-started");
 					}
-				})
-				.catch((error: unknown) => console.error(error));
-		}
-	}, [user, courseId, trainingId]); // Добавлены зависимости
+				}
+				// Прогресс как процент (0–100)
+				else if (typeof data?.progress === "number") {
+					const progressPercent = data.progress;
+					if (progressPercent === 100) {
+						setProgressStatus("completed");
+					} else if (progressPercent > 0) {
+						setProgressStatus("started");
+					} else {
+						setProgressStatus("not-started");
+					}
+				}
+			})
+			.catch(() => {
+				setProgressStatus("not-started");
+			});
+	}, [user?.token, courseId, trainingId, exercises]);
+
+	// ✅ Убираем дублирование: логика определяется по status
+	const isCompleted = progressStatus === "completed";
+	const isStarted = progressStatus === "started";
+
+	const getStyles = () => {
+		if (isCompleted) return "bg-[#BCEC30] text-white";
+		if (isStarted) return "bg-[#FFF3CD] text-black";
+		return "bg-[#F7F7F7] text-black";
+	};
+
+	const getIcon = () => {
+		if (isCompleted) return "✅";
+		if (isStarted) return "🟡";
+		return "";
+	};
 
 	return (
-		<div className="flex gap-[10px] w-full text-start items-center border-b-2">
-			<svg className="w-[24px] h-[24px]">
-				<use xlinkHref={`./icon/sprite.svg#${completedTraining ? "icon-check" : "icon-uncheck"}`} />
-			</svg>
-			<Link to={`/training/${courseId}/${trainingId}`} className="w-[280px]">
-				<p className="text-[14px] py-[10px]">{name}</p>
-			</Link>
-		</div>
+		<Link
+			to={`/training/${courseId}/${trainingId}`}
+			className={`p-3 rounded-[10px] text-[18px] font-medium ${getStyles()}`}
+		>
+			{name} {getIcon()}
+		</Link>
 	);
-}
+};
 
 export default TrainingLink;

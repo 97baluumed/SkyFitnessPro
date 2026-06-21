@@ -4,8 +4,8 @@ import React, { useEffect, useState } from "react";
 import "./TrainingSelectModal.css";
 import TrainingLink from "./TrainingLink/TrainingLink";
 import { getWorkoutsByCourse } from "../../../utils/api";
-import { Exercise } from "../../../types/training";
-import { useUser } from "../../../contexts/user"; // ✅ добавлен хук
+import { Workout } from "../../../types/training";
+import { useUser } from "../../../contexts/user";
 
 interface ModalProps {
 	closeModal: () => void;
@@ -13,58 +13,87 @@ interface ModalProps {
 }
 
 const TrainingSelectModal: React.FC<ModalProps> = ({ closeModal, courseId }) => {
-	const [workoutInfo, setWorkoutInfo] = useState<Exercise[]>([]);
+	const [workoutInfo, setWorkoutInfo] = useState<Workout[]>([]); // ✅ Workout, а не Exercise
 	const [isLoaded, setIsLoaded] = useState(false);
-	const { user } = useUser(); // ✅ получаем user
+	const { user } = useUser();
 
 	useEffect(() => {
 		const fetchWorkoutInfo = async () => {
-			if (!courseId || !user?.token) {
+			if (!courseId) {
+				console.warn("⚠️ courseId не передан");
+				setIsLoaded(true);
+				return;
+			}
+			if (!user || !user?.token?.trim()) {
+				if (!user) {
+					console.warn("⚠️ user не загружен");
+				} else {
+					console.error("❌ user.token отсутствует или пустой:", user?.token);
+				}
 				setIsLoaded(true);
 				return;
 			}
 
 			try {
-				// ✅ Получаем массив тренировок напрямую по courseId и token
 				const workouts = await getWorkoutsByCourse(courseId, user.token);
-				setWorkoutInfo(Array.isArray(workouts) ? workouts : []);
+				if (Array.isArray(workouts)) {
+					setWorkoutInfo(workouts as Workout[]);
+				} else if (workouts?._id) {
+					// Если API вернул один объект, обернём в массив
+					setWorkoutInfo([workouts as Workout]);
+				} else {
+					setWorkoutInfo([]);
+				}
 			} catch (error) {
-				console.error("❌ Ошибка при получении информации о тренировках:", error);
+				console.error("❌ Ошибка:", error);
 			} finally {
 				setIsLoaded(true);
 			}
 		};
 
 		fetchWorkoutInfo();
-	}, [courseId, user?.token]); // ✅ зависимости: courseId и user.token
+	}, [courseId, user]);
 
 	return (
-		<div className="fixed z-40 inset-0 flex justify-center items-center bg-gray-900 bg-opacity-50" onClick={closeModal}>
+		<div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 backdrop-blur-sm" onClick={closeModal}>
 			{isLoaded ? (
 				<div
-					className="relative flex flex-col items-center p-8 gap-8 w-[355px] bg-white shadow-[0_4px_67px_-12px_rgba(0,0,0,0.13)] rounded-[30px] overflow-hidden"
+					className="relative w-full max-w-md mx-4 p-8 bg-white rounded-[30px] shadow-[0_20px_40px_-10px_rgba(0,0,0,0.15)] overflow-hidden animate-fade-in-up"
 					onClick={(e) => e.stopPropagation()}
 				>
-					<div className="flex flex-col items-start gap-3 w-full h-full">
-						<h2 className="text-black text-[34px] text-start leading-10 font-medium mb-[20px]">Выберите тренировку</h2>
+					<button
+						onClick={closeModal}
+						className="absolute top-6 right-6 text-gray-400 hover:text-gray-600 transition-colors"
+						aria-label="Закрыть окно"
+					>
+						<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+						</svg>
+					</button>
 
-						<div className="flex flex-col gap-3 w-full h-[374px] overflow-y-auto leading-5 pr-[20px]">
-							{workoutInfo.map((workout, index) => (
-								<TrainingLink
-									key={index}
-									trainingId={workout._id}
-									name={workout.name}
-									courseId={courseId}
-								/>
-							))}
-							{workoutInfo.length === 0 && (
-								<p className="text-center text-gray-500 mt-4">Тренировок пока нет</p>
-							)}
-						</div>
+					<h2 className="text-3xl font-bold text-center text-gray-900 mb-8">
+						Выберите тренировку
+					</h2>
+
+					<div className="flex flex-col gap-3 max-h-[374px] overflow-y-auto pr-2 custom-scrollbar">
+						{workoutInfo.map((workout, index) => (
+							<TrainingLink
+								key={index}
+								trainingId={workout._id}
+								name={workout.name}
+								courseId={courseId}
+								exercises={workout.exercises || []} // ✅ Теперь exercises доступен!
+							/>
+						))}
+						{workoutInfo.length === 0 && (
+							<p className="text-center text-gray-500 py-4">Тренировок пока нет</p>
+						)}
 					</div>
 				</div>
 			) : (
-				<p className="text-black text">Загрузка...</p>
+				<div className="flex items-center justify-center h-64">
+					<p className="text-lg text-gray-700 animate-pulse">Загрузка...</p>
+				</div>
 			)}
 		</div>
 	);

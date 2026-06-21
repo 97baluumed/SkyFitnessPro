@@ -72,6 +72,9 @@ export const getWorkoutsByCourse = async (courseId: string, token?: string) => {
 	const headers: Record<string, string> = {};
 	if (token) {
 		headers.Authorization = `Bearer ${token}`;
+		console.log("🚀 Заголовок Authorization установлен:", token.slice(0, 20) + "..."); // <-- отладка
+	} else {
+		console.warn("⚠️ Токен не передан! headers:", headers);
 	}
 
 	const res = await fetch(`${API_BASE}/courses/${courseId}/workouts`, {
@@ -79,7 +82,9 @@ export const getWorkoutsByCourse = async (courseId: string, token?: string) => {
 	});
 
 	if (!res.ok) {
-		throw new Error(`Ошибка при получении тренировок курса ${courseId}`);
+		const errorText = await res.text();
+		console.error("❌ Ошибка API:", res.status, errorText);
+		throw new Error(`Ошибка при получении тренировок курса ${courseId}: ${errorText}`);
 	}
 
 	return await res.json();
@@ -180,17 +185,20 @@ export const saveWorkoutProgress = async (
 		method: "PATCH",
 		headers: {
 			Authorization: `Bearer ${token}`,
-			"Content-Type": "application/json",
+			// ❌ Убрали "Content-Type": "application/json"
 		},
-		body: JSON.stringify({ progressData }),
+		body: JSON.stringify({ progressData }), // ✅ Массив, где i-й элемент = повторения для i-го упражнения
 	});
 
 	if (!res.ok) {
-		throw new Error("Ошибка при сохранении прогресса");
+		const errorText = await res.text();
+		throw new Error(`Ошибка при сохранении прогресса: ${errorText}`);
 	}
 
 	return await res.json();
 };
+
+
 
 export const resetProgress = async (token: string, courseId: string) => {
 	const res = await fetch(`${API_BASE}/users/me/progress?courseId=${courseId}`, {
@@ -207,21 +215,66 @@ export const resetProgress = async (token: string, courseId: string) => {
 	return await res.json();
 };
 
-// === Вспомогательные функции (для обработки строк и количества) ===
-export const getRealQuantityWithoutExercises = (text: string): number => {
+export const getWorkoutById = async (courseId: string, workoutId: string, token?: string) => {
+	const headers: Record<string, string> = {};
+	if (token) {
+		headers.Authorization = `Bearer ${token}`;
+	}
+
+	const res = await fetch(`${API_BASE}/courses/${courseId}/workouts/${workoutId}`, {
+		headers,
+	});
+
+	if (!res.ok) {
+		const errorText = await res.text();
+		throw new Error(`Ошибка при получении тренировки ${workoutId}: ${errorText}`);
+	}
+
+	return await res.json();
+};
+
+// ✅ ИСПРАВЛЕНО: Новая асинхронная функция для получения прогресса
+export const getRealQuantityWithoutExercises = async (
+	token: string,
+	courseId: string,
+	workoutId?: string
+): Promise<number> => {
+	const url = workoutId
+		? `${API_BASE}/users/me/progress?courseId=${courseId}&workoutId=${workoutId}`
+		: `${API_BASE}/users/me/progress?courseId=${courseId}`;
+
+	const res = await fetch(url, {
+		method: "GET",
+		headers: {
+			Authorization: `Bearer ${token}`,
+		},
+	});
+
+	if (!res.ok) {
+		throw new Error("Ошибка при получении прогресса");
+	}
+
+	const data = await res.json();
+
+	// В зависимости от ответа API:
+	// Если data = { progress: 3 } или data = 3
+	if (typeof data === "number") return data;
+	if (typeof data?.progress === "number") return data.progress;
+
+	return 0;
+};
+
+// === Вспомогательные функции (для обработки строк и количества) — переименованы, чтобы не конфликтовать ===
+// Используются в TrainingProgressItem для placeholder и ввода
+export const extractQuantityFromString = (text: string): number => {
 	if (!text) return 0;
 	const match = text.match(/\d+/);
 	return match ? parseInt(match[0], 10) : 0;
 };
 
-// Алиасы — для совместимости
-export const getRealQuantity = getRealQuantityWithoutExercises;
-export const extractQuantity = getRealQuantityWithoutExercises;
-
-// === Дополнительные функции для работы с прогрессом ===
 export const addRealQuantityWithoutExercises = (text: string): string => {
 	if (!text) return "";
-	const quantity = getRealQuantityWithoutExercises(text);
+	const quantity = extractQuantityFromString(text);
 	if (quantity === 0) return text;
 
 	const prefix = text.replace(/\d+/, "");
@@ -230,8 +283,13 @@ export const addRealQuantityWithoutExercises = (text: string): string => {
 	return prefix.trim() === "" ? `${quantity} ${text}` : text;
 };
 
-export const addRealQuantity = async (token: string, courseId: string, workoutId: string, quantityText: string): Promise<void> => {
-	const quantity = getRealQuantityWithoutExercises(quantityText);
+export const addRealQuantity = async (
+	token: string,
+	courseId: string,
+	workoutId: string,
+	quantityText: string
+): Promise<void> => {
+	const quantity = extractQuantityFromString(quantityText);
 
 	if (quantity === 0) {
 		throw new Error("Не удалось извлечь количество из строки");
@@ -241,5 +299,5 @@ export const addRealQuantity = async (token: string, courseId: string, workoutId
 	await saveWorkoutProgress(token, courseId, workoutId, progressData);
 };
 
-// Алиас для addRealQuantity без "WithoutExercises"
-export const addRealQuantityText = addRealQuantityWithoutExercises;
+// Алиасы — для совместимости
+export const getRealQuantity = getRealQuantityWithoutExercises;

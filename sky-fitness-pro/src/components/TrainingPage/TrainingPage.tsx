@@ -1,28 +1,26 @@
+// src/components/TrainingPage/TrainingPage.tsx
+
 import ExerciseProgress from "./ExerciseProgress/ExerciseProgress";
 import TrainingProgressModal from "../Modal/TrainingProgressModal/TrainingProgress/TrainingProgressModal";
 import SaveTrainingProgressModal from "../Modal/TrainingProgressModal/SaveTrainingProgressModal";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import {
-	addRealQuantity,
-	addRealQuantityWithoutExercises,
-	getCourseById,
-	getRealQuantity,
-	getRealQuantityWithoutExercises,
-	getWorkoutsById,
+	getProgress,
+	saveWorkoutProgress,
+	getWorkoutsByCourse,
 } from "../../utils/api";
 import { useUser } from "../../hooks/useUser";
 import { Exercise } from "../../types/training";
 
 function TrainingPage() {
+	const { courseId, trainingId } = useParams<{ courseId: string; trainingId: string }>(); // ✅ Добавлен trainingId
 	const [isTrainingProgressModalOpen, setIsTrainingProgressModalOpen] = useState(false);
 	const [isSaveTrainingProgressModalOpen, setIsSaveTrainingProgressModalOpen] = useState(false);
-	const { id, courseId } = useParams();
 	const [workout, setWorkout] = useState<Exercise | null>(null);
 	const [exercises, setExercises] = useState<Exercise[]>([]);
 	const [exerciseProgress, setExerciseProgress] = useState<{ [key: string]: number }>({});
 	const [isLoading, setIsLoading] = useState(true);
-	const [courseData, setCourseData] = useState<string | null>(null);
 	const [withoutExercise, setWithoutExercise] = useState(false);
 	const { user } = useUser();
 
@@ -34,91 +32,123 @@ function TrainingPage() {
 	const closeTrainingProgressModal = () => setIsTrainingProgressModalOpen(false);
 
 	const handleSaveTrainingProgress = (updatedQuantities: { [exerciseName: string]: number }) => {
-		if (user?.uid && courseId && workout) {
-			const exercisesData = Object.entries(updatedQuantities).map(([name, quantity]) => ({
-				name,
-				quantity,
-			}));
+		console.log("✅ handleSaveTrainingProgress вызван, updatedQuantities:", updatedQuantities);
 
-			addRealQuantity(user.uid, courseId, workout._id, exercisesData)
-				.then(() => {
-					getRealQuantity(user.uid, courseId, workout._id).then((data) => {
-						const progressObject = data.reduce(
-							(acc, curr, index) => {
-								acc[exercises[index].name] = curr;
-								return acc;
-							},
-							{} as { [key: string]: number },
-						);
-
-						setExerciseProgress(progressObject);
-					});
-				})
-				.catch((error: unknown) => console.error("Ошибка сохранения прогресса:", error));
-		} else {
-			console.error("ID тренировки или курса не найдены");
+		if (!user?.token || !courseId || !workout) {
+			console.error("❌ Отсутствуют данные (token, courseId или workout)");
+			return;
 		}
 
-		setIsSaveTrainingProgressModalOpen(true);
+		const progressData = exercises.map(ex => updatedQuantities[ex.name] ?? 0);
+		console.log("🚀 progressData:", progressData);
+
+		saveWorkoutProgress(user.token, courseId, workout._id, progressData)
+			.then(() => {
+				console.log("✅ Прогресс успешно сохранён");
+				localStorage.setItem("sky_fitness_progress_updated", Date.now().toString());
+
+				getProgress(user.token, courseId, workout._id)
+					.then((data) => {
+						if (Array.isArray(data?.progressData)) {
+							const newProgress: { [key: string]: number } = {};
+							data.progressData.forEach((val: number, idx: number) => {
+								if (exercises[idx]) {
+									newProgress[exercises[idx].name] = val;
+								}
+							});
+							setExerciseProgress(newProgress);
+						} else if (typeof data?.progress === "number") {
+							const allProgress: number = data.progress;
+							const newProgress: { [key: string]: number } = {};
+							exercises.forEach(ex => {
+								newProgress[ex.name] = allProgress;
+							});
+							setExerciseProgress(newProgress);
+						}
+
+						setIsTrainingProgressModalOpen(false);
+						setIsSaveTrainingProgressModalOpen(true);
+					})
+					.catch((error) => {
+						console.error("❌ Ошибка получения прогресса после сохранения:", error);
+						setIsTrainingProgressModalOpen(false);
+						setIsSaveTrainingProgressModalOpen(true);
+					});
+			})
+			.catch((error) => {
+				console.error("❌ Ошибка сохранения прогресса:", error);
+				alert(`Ошибка сохранения: ${error.message}`);
+			});
 	};
 
+	// ✅ Загружаем конкретную тренировку по trainingId
 	useEffect(() => {
-		if (courseId) {
-			getCourseById(courseId)
+		if (courseId && trainingId && user?.token) {
+			getWorkoutsByCourse(courseId, user.token)
 				.then((data) => {
-					setCourseData(data.nameRU);
-				})
-				.catch((error: unknown) => console.error(error));
-		}
-	}, [courseId]);
-
-	useEffect(() => {
-		if (id) {
-			getWorkoutsById(id)
-				.then((data) => {
-					setWorkout(data);
-					setExercises(data.exercises);
-				})
-				.catch((error: unknown) => console.error(error))
-				.finally(() => setIsLoading(false));
-		}
-	}, [id]);
-
-	useEffect(() => {
-		if (user?.uid && courseId && workout) {
-			getRealQuantity(user.uid, courseId, workout._id)
-				.then((data) => {
-					if (data.length !== 0) {
-						const progressObject = data.reduce(
-							(acc, curr, index) => {
-								acc[exercises[index].name] = curr;
-								return acc;
-							},
-							{} as { [key: string]: number },
-						);
-
-						setExerciseProgress(progressObject);
-						setWithoutExercise(true);
+					if (Array.isArray(data)) {
+						const found = data.find(w => w._id === trainingId);
+						if (found) {
+							setWorkout(found);
+							setExercises(found.exercises || []);
+						} else {
+							throw new Error(`Тренировка с ID ${trainingId} не найдена в курсе ${courseId}`);
+						}
+					} else if (typeof data === "object" && data?._id === trainingId) {
+						setWorkout(data);
+						setExercises(data.exercises || []);
+					} else {
+						throw new Error("Некорректный ответ от API: expected array or object with matching _id");
 					}
 				})
-				.catch((error: unknown) => console.error(error));
+				.catch((error: unknown) => {
+					console.error("❌ Ошибка загрузки тренировки:", error);
+					setWorkout(null);
+					setExercises([]);
+				})
+				.finally(() => setIsLoading(false));
 		}
-	}, [user, courseId, workout]);
+	}, [courseId, trainingId, user?.token]);
+
+	// ✅ Получаем текущий прогресс по курсу
+	useEffect(() => {
+		if (user?.token && courseId && workout && exercises.length > 0) {
+			getProgress(user.token, courseId, workout._id)
+				.then((data) => {
+					const newProgress: { [key: string]: number } = {};
+
+					if (Array.isArray(data?.progressData)) {
+						data.progressData.forEach((val: number, idx: number) => {
+							if (exercises[idx]) {
+								newProgress[exercises[idx].name] = val;
+							}
+						});
+					} else if (typeof data?.progress === "number") {
+						exercises.forEach(ex => {
+							newProgress[ex.name] = data.progress;
+						});
+					}
+
+					setExerciseProgress(newProgress);
+					console.log("✅ updated exerciseProgress:", newProgress);
+				})
+				.catch((error) => console.error("❌ Ошибка прогресса:", error));
+		}
+	}, [user?.token, courseId, workout, exercises]);
 
 	const handleAddRealQuantityWithoutExercises = () => {
-		if (user?.uid && courseId && workout) {
-			const exercises = { [0]: { quantity: 0 } };
-			addRealQuantityWithoutExercises(user.uid, courseId, workout._id, exercises)
+		if (user?.token && courseId && workout) {
+			saveWorkoutProgress(user.token, courseId, workout._id, [0])
 				.then(() => {
-					getRealQuantityWithoutExercises(user.uid, courseId, workout._id)
+					getProgress(user.token, courseId, workout._id)
 						.then((data) => {
-							if (data !== null) {
+							if (typeof data?.progress === "number") {
 								setWithoutExercise(true);
 							}
 						})
-						.catch((error: unknown) => console.error(error));
+						.catch((error: unknown) => console.error("❌ Ошибка прогресса:", error));
 				})
-				.catch((error: unknown) => console.error("Ошибка сохранения прогресса:", error));
+				.catch((error: unknown) => console.error("❌ Ошибка сохранения:", error));
 		}
 	};
 
@@ -130,7 +160,7 @@ function TrainingPage() {
 				<div className="flex flex-col mt-[40px] sm:mt-[60px] gap-[24px] sm:gap-[40px]">
 					<div className="flex flex-col gap-[10px] sm:gap-[24px]">
 						<h2 className="text-[24px] sm:text-[40px] lg:text-[60px] font-medium text-left leading-none">
-							{courseData}
+							{workout?.name}
 						</h2>
 						<p className="text-[18px] sm:text-[22px] lg:text-[32px] text-left leading-none underline decoration-solid">
 							{workout?.name}
@@ -164,7 +194,6 @@ function TrainingPage() {
 										closeModal={closeTrainingProgressModal}
 										onSubmit={handleSaveTrainingProgress}
 										exercises={exercises}
-										workout_Id={workout._id}
 										exerciseProgress={exerciseProgress}
 									/>
 								)}

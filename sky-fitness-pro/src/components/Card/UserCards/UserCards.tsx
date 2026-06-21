@@ -35,7 +35,6 @@ function UserCards({ courseId, nameRu, onDelete }: UserCardsProps) {
 	const openTrainingSelectModal = () => setTrainingSelectModalOpen(true);
 	const closeTrainingSelectModal = () => setTrainingSelectModalOpen(false);
 
-	// ✅ ИСПРАВЛЕНО: getWorkoutsByCourse с token
 	useEffect(() => {
 		if (!user?.uid || !user?.token) return;
 
@@ -50,22 +49,32 @@ function UserCards({ courseId, nameRu, onDelete }: UserCardsProps) {
 		fetchWorkouts();
 	}, [courseId, user?.uid, user?.token]);
 
-	// ✅ Получаем прогресс по тренировкам курса
+	// ✅ ИСПРАВЛЕНО: Получаем прогресс по тренировкам — считаем avgProgress
 	useEffect(() => {
-		if (workoutInfo.length > 0 && user?.uid && user?.token) {
+		if (workoutInfo.length > 0 && user?.token) {
 			const fetchProgress = async () => {
 				try {
 					const allProgresses = await Promise.all(
 						workoutInfo.map(async (workout) => {
 							try {
 								const progress = await getProgress(user.token, courseId, workout._id);
-								return Array.isArray(progress) ? progress.length : 0;
+								return progress?.progressData || [];
 							} catch {
-								return 0;
+								return [];
 							}
 						})
 					);
-					setProgressData(allProgresses);
+
+					const flatProgresses = allProgresses.flat();
+
+					// ✅ Исправлено: явные типы и убраны лишние переменные
+					const avgProgress = flatProgresses.length > 0
+						? flatProgresses.reduce((sum: number, val: number) => sum + val, 0) / flatProgresses.length
+						: 0;
+
+					const progressPercent = Math.round(avgProgress);
+
+					setProgressData([progressPercent]);
 					setIsLoading(true);
 				} catch (error) {
 					console.error("❌ Ошибка при получении прогресса:", error);
@@ -76,22 +85,19 @@ function UserCards({ courseId, nameRu, onDelete }: UserCardsProps) {
 		} else {
 			setIsLoading(true);
 		}
-	}, [workoutInfo, user?.uid, user?.token, courseId]);
+	}, [workoutInfo, user?.token, courseId]);
 
-	// ✅ Вычисляем процент выполнения
-	const visitedRatio = workoutInfo.length > 0
-		? (progressData.reduce((acc, val) => acc + val, 0) / workoutInfo.length) * 100
-		: 0;
+	const visitedRatio = progressData.length > 0 ? progressData[0] : 0;
 
-	// ✅ Удаление курса
+	// ✅ Убраны неиспользуемые переменные: totalCompleted, totalWorkoutCount, completedWorkouts
+
 	async function deleteCourse() {
 		if (!user?.uid || !user?.token) return;
 
 		try {
 			await deleteCourseToUser(user.token, courseId);
-			onDelete(courseId); // ✅ вызываем только при успехе
+			onDelete(courseId);
 		} catch (error) {
-			// 🔍 Логируем, но не выбрасываем дальше
 			if (error instanceof Error && (error as Error).message.includes("не был добавлен")) {
 				console.warn(`ℹ️ Курс ${courseId} уже удалён или не был добавлен`);
 			} else {
@@ -100,7 +106,6 @@ function UserCards({ courseId, nameRu, onDelete }: UserCardsProps) {
 		}
 	}
 
-	// ✅ Сброс прогресса (удаляет прогресс, но оставляет курс)
 	function restartCourse() {
 		if (!user?.uid || !user?.token) return;
 

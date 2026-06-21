@@ -18,3 +18,10 @@ export interface Exercise {
 	quantity: number;
 	video: string;
 }
+
+export interface Workout {
+	_id: string;
+	name: string;
+	video: string;
+	exercises: Exercise[];
+}

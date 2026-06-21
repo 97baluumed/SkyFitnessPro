@@ -1,16 +1,24 @@
-import { useState } from "react";
+// src/components/Modal/TrainingProgressModal/TrainingProgressItem/TrainingProgressItem.tsx
+
+import { useState, useEffect } from "react"; // ✅ Добавлен useEffect
 import { Exercise } from "../../../../types/training";
 
 interface TrainingProgressItemProps extends Exercise {
 	onQuantityChange: (exerciseName: string, realQuantity: number) => void;
+	currentProgress: number;
 }
 
-function TrainingProgressItem({ name, quantity, onQuantityChange }: TrainingProgressItemProps) {
-	const [realQuantity, setRealQuantity] = useState<number>();
+function TrainingProgressItem({ name, quantity, onQuantityChange, currentProgress }: TrainingProgressItemProps) {
+	const [localValue, setLocalValue] = useState<number | "">(currentProgress !== undefined ? currentProgress : 0);
+
+	// ✅ Обновляем локальное значение, когда currentProgress меняется
+	useEffect(() => {
+		setLocalValue(currentProgress !== undefined ? currentProgress : 0);
+	}, [currentProgress]);
 
 	const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const value = Number(e.target.value);
-		setRealQuantity(value);
+		setLocalValue(value);
 		onQuantityChange(name, value);
 	};
 
@@ -20,7 +28,7 @@ function TrainingProgressItem({ name, quantity, onQuantityChange }: TrainingProg
 			<input
 				type="number"
 				placeholder={quantity.toString()}
-				value={realQuantity || ""}
+				value={localValue === 0 ? "" : localValue} // ✅ "" для 0 (чтобы placeholder работал)
 				className="text-[16px] placeholder:opacity-[60%] w-full h-[47px] text-base font-normal text-black-400 border border-gray-300 rounded-[8px] p-[16px]"
 				onChange={handleQuantityChange}
 			/>

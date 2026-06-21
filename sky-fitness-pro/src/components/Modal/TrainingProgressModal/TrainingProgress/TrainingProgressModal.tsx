@@ -1,3 +1,5 @@
+// src/components/Modal/TrainingProgressModal/TrainingProgress/TrainingProgressModal.tsx
+
 import React, { useState, useEffect } from "react";
 import "./TrainingProgressModal.css";
 import TrainingProgressItem from "../TrainingProgressItem/TrainingProgressItem";
@@ -7,17 +9,17 @@ interface ModalProps {
 	closeModal: () => void;
 	onSubmit: (updatedQuantities: { [key: string]: number }) => void;
 	exercises: Exercise[];
-	workout_Id: string;
 	exerciseProgress: { [key: string]: number };
 }
 
 const TrainingProgressModal: React.FC<ModalProps> = ({ closeModal, onSubmit, exercises, exerciseProgress }) => {
-	const [updatedQuantities, setUpdatedQuantities] = useState<{ [exerciseName: string]: number }>({});
+	const [updatedQuantities, setUpdatedQuantities] = useState<{ [key: string]: number }>({});
 
+	// ✅ Инициализация — берём текущий прогресс
 	useEffect(() => {
 		const initialQuantities: { [key: string]: number } = {};
 		exercises.forEach((exercise) => {
-			initialQuantities[exercise.name] = exerciseProgress[exercise.name] || 0;
+			initialQuantities[exercise.name] = exerciseProgress[exercise.name] ?? 0;
 		});
 		setUpdatedQuantities(initialQuantities);
 	}, [exercises, exerciseProgress]);
@@ -49,6 +51,7 @@ const TrainingProgressModal: React.FC<ModalProps> = ({ closeModal, onSubmit, exe
 								_id={exercise._id}
 								name={exercise.name}
 								quantity={exercise.quantity}
+								currentProgress={exerciseProgress[exercise.name] ?? 0} // ✅ передаём текущий прогресс
 								onQuantityChange={handleQuantityChange}
 								video={exercise.video}
 							/>
@@ -57,7 +60,7 @@ const TrainingProgressModal: React.FC<ModalProps> = ({ closeModal, onSubmit, exe
 				</div>
 				<div className="flex items-center w-full">
 					<button
-						className="flex text-black font-medium text-lg font-medium flex-row justify-center items-center w-full h-[52px] bg-[#BCEC30] hover:bg-[#C6FF00] active:bg-[#000000] active:text-[#FFFFFF] rounded-[46px]"
+						className="flex text-black font-medium text-lg flex-row justify-center items-center w-full h-[52px] bg-[#BCEC30] hover:bg-[#C6FF00] active:bg-[#000000] active:text-[#FFFFFF] rounded-[46px]"
 						onClick={handleSubmit}
 					>
 						Сохранить
