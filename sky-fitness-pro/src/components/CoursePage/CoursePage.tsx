@@ -1,7 +1,9 @@
+// src/components/CoursePage/CoursePage.tsx
+
 import { useParams } from "react-router-dom";
-import { addCourseToUser, getCourseById, getUserCourses } from "../../utils/api";
+import { addCourseToUser, getCourseById } from "../../utils/api";
 import { useEffect, useState } from "react";
-import { useUser } from "../../hooks/useUser"; // ← здесь нет setUser!
+import { useUser } from "../../hooks/useUser";
 import { TrainingType } from "../../types/training";
 
 interface CoursePageProps {
@@ -17,10 +19,31 @@ function CoursePage({ openModal }: CoursePageProps) {
 	const [specialClass, setSpecialClass] = useState("");
 	const [isCourseAdded, setIsCourseAdded] = useState(false);
 	const [isButtonDisabled, setIsButtonDisabled] = useState(false);
+	const [poster, setPoster] = useState<string>("");
 
-	const { user } = useUser(); // ← setUser здесь НЕТ!
+	const { user } = useUser();
 
-	// 🔍 Получение курса с безопасной обработкой ошибок
+	// ✅ Выбор картинки по ID
+	useEffect(() => {
+		if (!id) return;
+		switch (id) {
+			case "ab1c3f": setPoster("/images/yogaCoursePage.jpg"); break;
+			case "kfpq8e": setPoster("/images/stretchingCoursePage.jpg"); break;
+			case "ypox9r": setPoster("/images/fitnessCoursePage.jpg"); break;
+			case "6i67sm": setPoster("/images/stepAerobicsCoursePage.jpg"); break;
+			case "q02a6i": setPoster("/images/bodyFlexCoursePage.jpg"); break;
+			default: setPoster("/zagl.jpg");
+		}
+	}, [id]);
+
+	// ✅ КРИТИЧЕСКИ ВАЖНО: Обновляем isCourseAdded и isButtonDisabled при изменении user.selectedCourses
+	useEffect(() => {
+		const courseAlreadyAdded = user?.selectedCourses?.includes(id!) || false;
+		setIsCourseAdded(courseAlreadyAdded);
+		setIsButtonDisabled(courseAlreadyAdded);
+	}, [user?.selectedCourses, id]);
+
+	// 🔍 Получение курса
 	useEffect(() => {
 		if (!id) return;
 
@@ -34,42 +57,47 @@ function CoursePage({ openModal }: CoursePageProps) {
 					return;
 				}
 
-				// ✅ Убрана строгая проверка images — она опциональна!
 				setCourse(data);
 			})
 			.catch((err) => {
 				console.error("❌ Ошибка при загрузке курса:", err);
-				setError("Не удалось загрузить курс. Проверьте консоль.");
+				setError("Не удалось загрузить курс.");
 			})
 			.finally(() => setIsLoading(false));
 	}, [id]);
 
-	// ✅ Проверка, добавлен ли курс
+	// ✅ ДОП. СИНХРОНИЗАЦИЯ: Загружаем актуальные selectedCourses из API при открытии страницы (если токен есть)
 	useEffect(() => {
-		if (user?.token) {
-			getUserCourses(user.token)
-				.then((data) => {
-					if (
-						data &&
-						typeof data === "object" &&
-						"selectedCourses" in data &&
-						Array.isArray(data.selectedCourses)
-					) {
-						const courseExists = (data.selectedCourses as string[]).includes(id!);
-						if (courseExists) {
-							setIsCourseAdded(true);
-							setIsButtonDisabled(true);
-						}
-					}
-				})
-				.catch((e) => console.warn("⚠️ Ошибка при проверке добавленных курсов:", e));
-		}
-	}, [user?.token, id]);
+		if (!user?.token || !id || isButtonDisabled) return;
 
-	// ✅ Исправлено: используем user.token, а не user.uid
+		const fetchSelectedCoursesFromAPI = async () => {
+			try {
+				const API_BASE = "https://wedev-api.sky.pro/api/fitness";
+				const res = await fetch(`${API_BASE}/users/me`, {
+					headers: { Authorization: `Bearer ${user.token}` }
+				});
+
+				if (!res.ok) throw new Error(`Ошибка API: ${res.status}`);
+
+				const data = await res.json();
+
+				if (data?.user?.selectedCourses && Array.isArray(data.user.selectedCourses)) {
+					const courseExists = data.user.selectedCourses.includes(id);
+					setIsCourseAdded(courseExists);
+					setIsButtonDisabled(courseExists);
+				}
+			} catch (e) {
+				console.warn("⚠️ Не удалось обновить selectedCourses из API", e);
+			}
+		};
+
+		fetchSelectedCoursesFromAPI();
+	}, [user?.token, id, isButtonDisabled]);
+
+	// ✅ Добавление курса
 	function addCourse() {
 		if (!user?.token || !course?._id) {
-			console.error("❌ Ошибка: отсутствует token или course._id");
+			console.error("❌ Ошибка: нет token или course._id");
 			return;
 		}
 
@@ -77,15 +105,15 @@ function CoursePage({ openModal }: CoursePageProps) {
 			.then(() => {
 				setIsCourseAdded(true);
 				setIsButtonDisabled(true);
-				// ✅ Убрано setUser — его нет в useUser хук!
-				// setUser({ ...user, selectedCourses: [...] })
 			})
 			.catch((error) => {
 				console.error("❌ Ошибка при добавлении курса:", error);
+				setIsButtonDisabled(false);
+				setIsCourseAdded(false);
 			});
 	}
 
-	// ✅ Установка цвета фона по ID курса
+	// ✅ Цвет фона
 	useEffect(() => {
 		if (!id) return;
 		let bg_color = "";
@@ -100,7 +128,7 @@ function CoursePage({ openModal }: CoursePageProps) {
 		setBgColor(bg_color);
 	}, [id]);
 
-	// ✅ Установка специальных классов для адаптивности
+	// ✅ Специальные классы
 	useEffect(() => {
 		if (!id) return;
 		const specialIds = ["fi67sm", "q02a6i"];
@@ -108,10 +136,24 @@ function CoursePage({ openModal }: CoursePageProps) {
 		setSpecialClass((prev) => (prev ? `${prev} ${className}` : className));
 	}, [id]);
 
-	// 🛡️ Безопасный рендеринг
+	// 🛡️ Рендер
 	return (
 		<>
 			<div className="mt-[40px] sm:mt-[60px]">
+				{/* ✅ КАРТИНКА ПОД ЗАГОЛОВКОМ */}
+				{poster && (
+					<div className="w-full h-[250px] sm:h-[350px] rounded-[20px] overflow-hidden mb-[40px] sm:mb-[60px]">
+						<img
+							src={poster}
+							alt="course-poster"
+							className="w-full h-full object-contain"
+							onError={(e) => {
+								console.error("❌ Ошибка загрузки картинки:", poster);
+								e.currentTarget.src = "/zagl.jpg";
+							}}
+						/>
+					</div>
+				)}
 				{isLoading ? (
 					<p>Загрузка курса...</p>
 				) : error ? (

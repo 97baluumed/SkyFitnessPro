@@ -1,3 +1,5 @@
+// src/app/Main/Main.tsx
+
 import { useEffect, useState } from "react";
 import { getCourses } from "../../utils/api";
 import Card from "../../components/Card/Card";
@@ -26,7 +28,6 @@ function Main() {
 		}
 	};
 
-
 	const [isLoaded, setIsLoaded] = useState(false);
 	const [courses, setCourses] = useState<TrainingType[]>([]);
 
@@ -34,19 +35,11 @@ function Main() {
 		getCourses()
 			.then((data: Record<string, TrainingType>) => {
 				if (!data || typeof data !== "object") {
-					console.warn("Пустой ответ от API", data);
 					setCourses([]);
 					return;
 				}
 
-				const courseEntries = Object.entries(data);
-				console.log("📦 Всего курсов:", courseEntries.length);
-				courseEntries.forEach(([key, course]) => {
-					console.log(`📦 ID: "${key}", images:`, course.images);
-				});
-
-				const coursesData: TrainingType[] = courseEntries
-					.map(([, course]) => course) // ✅ используем пустой слот в деструктуризации
+				const coursesData: TrainingType[] = Object.values(data)
 					.filter((item): item is TrainingType => item != null);
 
 				coursesData.sort((a, b) =>
@@ -55,8 +48,7 @@ function Main() {
 
 				setCourses(coursesData);
 			})
-			.catch((error: unknown) => {
-				console.error("Ошибка загрузки курсов:", error);
+			.catch(() => {
 				setCourses([]);
 			})
 			.finally(() => {

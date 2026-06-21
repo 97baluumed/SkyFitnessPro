@@ -72,7 +72,6 @@ export const getWorkoutsByCourse = async (courseId: string, token?: string) => {
 	const headers: Record<string, string> = {};
 	if (token) {
 		headers.Authorization = `Bearer ${token}`;
-		console.log("🚀 Заголовок Authorization установлен:", token.slice(0, 20) + "..."); // <-- отладка
 	} else {
 		console.warn("⚠️ Токен не передан! headers:", headers);
 	}
