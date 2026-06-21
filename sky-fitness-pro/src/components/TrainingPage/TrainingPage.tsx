@@ -30,7 +30,6 @@ function TrainingPage() {
 	const closeTrainingProgressModal = () => setIsTrainingProgressModalOpen(false);
 
 	const handleSaveTrainingProgress = (updatedQuantities: { [exerciseName: string]: number }) => {
-		console.log("handleSaveTrainingProgress вызван, updatedQuantities:", updatedQuantities);
 
 		if (!user?.token || !courseId || !workout) {
 			console.error("Отсутствуют данные (token, courseId или workout)");
@@ -124,7 +123,6 @@ function TrainingPage() {
 					}
 
 					setExerciseProgress(newProgress);
-					console.log("updated exerciseProgress:", newProgress);
 				})
 				.catch((error) => console.error("Ошибка прогресса:", error));
 		}
