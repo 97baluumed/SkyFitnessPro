@@ -1,9 +1,10 @@
-// src/components/Modal/AuthModal/Register/Register.tsx
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { registerUser, loginUser } from "../../../../utils/api";
 import { useUser } from "../../../../contexts/user";
+
+// === Вспомогательные функции для localStorage ===
+const STORAGE_NAME_KEY = (email?: string) => `sky_fitness_user_name_${email}`;
 
 export const Register = ({
     closeModal,
@@ -19,7 +20,6 @@ export const Register = ({
     const [error, setError] = useState("");
 
     const validatePassword = (pwd: string) => {
-        // ✅ Упрощённая валидация: только длина
         if (pwd.length < 6) return "Пароль должен содержать не менее 6 символов";
         return null;
     };
@@ -44,7 +44,15 @@ export const Register = ({
             await registerUser(email, password);
             const data = await loginUser(email, password);
             const token = data.token;
-            setUser({ token, uid: token, name: email, email });
+
+            // ✅ Получаем имя из localStorage или email как fallback
+            const storedName = localStorage.getItem(STORAGE_NAME_KEY(email));
+            const name = storedName || email;
+
+            // ❗ ДОБАВЛЕНО: сохраняем имя в localStorage
+            localStorage.setItem(STORAGE_NAME_KEY(email), name);
+
+            setUser({ token, uid: token, name, email });
             closeModal();
             navigate("/profile");
         } catch (err: unknown) {

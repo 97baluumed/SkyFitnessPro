@@ -17,7 +17,7 @@ function Profile() {
 	const [name, setName] = useState<string>(() => {
 		if (!user?.email) return "";
 		const stored = localStorage.getItem(STORAGE_NAME_KEY(user.email));
-		return stored || user.email;
+		return stored || user.name || user.email;
 	});
 
 	const [isEditingName, setIsEditingName] = useState(false);
@@ -34,8 +34,10 @@ function Profile() {
 
 	const handleSaveName = () => {
 		if (name.trim() && user?.email) {
-			localStorage.setItem(STORAGE_NAME_KEY(user.email), name.trim());
-			setUser({ ...user, name: name.trim() });
+			const trimmedName = name.trim();
+			localStorage.setItem(STORAGE_NAME_KEY(user.email), trimmedName);
+			console.log("✅ Profile: call setUser with name =", trimmedName);
+			setUser({ ...user, name: trimmedName }); // ←Header должен обновиться
 			setIsEditingName(false);
 		} else {
 			alert("Имя не может быть пустым");
@@ -51,7 +53,6 @@ function Profile() {
 			setCourseInfoArray([]);
 			return;
 		}
-
 
 		const coursesData = await Promise.all(
 			user.selectedCourses.map(async (courseId: string) => {
@@ -69,8 +70,10 @@ function Profile() {
 		setCourseInfoArray(validCourses);
 	}, [user?.selectedCourses]);
 
-	// ✅ Загрузка данных пользователя
+	// ✅ Загрузка данных пользователя с обновлением имени из API
 	useEffect(() => {
+		const controller = new AbortController();
+
 		if (!user?.token) return;
 
 		const fetchUserInfo = async () => {
@@ -80,12 +83,10 @@ function Profile() {
 					headers: { Authorization: `Bearer ${user.token}` }
 				});
 
-				if (!res.ok) {
-					throw new Error(`API error: ${res.status}`);
-				}
+				if (!res.ok) throw new Error(`API error: ${res.status}`);
 
 				const userData = await res.json();
-				// ✅ Исправлено: userData.user.selectedCourses
+
 				if (userData.user?.selectedCourses) {
 					setUser({
 						...user,
@@ -93,15 +94,26 @@ function Profile() {
 					});
 				}
 
+				if (userData.user?.name) {
+					setUser({
+						...user,
+						name: userData.user.name
+					});
+				}
+
 				await refetchCourses();
 			} catch (error) {
-				console.error("❌ Ошибка при получении данных пользователя:", error);
+				if (error instanceof Error && error.name !== "AbortError") {
+					console.error("❌ Ошибка при получении данных пользователя:", error);
+				}
 			} finally {
 				setIsLoading(false);
 			}
 		};
 
 		fetchUserInfo();
+
+		return () => controller.abort(); // ✅ Отмена при размонтировании
 	}, [user?.token]);
 
 	// ✅ Используем refetchCourses при изменении selectedCourses
@@ -121,7 +133,7 @@ function Profile() {
 		} catch (error) {
 			if (error instanceof Error && (error as Error).message.includes("не был добавлен")) {
 				console.warn("Курс уже удалён:", courseId);
-				return; // ❗ не выбрасываем дальше — ошибка уже "подавлена"
+				return;
 			}
 			console.error("❌ Ошибка при удалении курса:", error);
 			alert("Ошибка при удалении курса");

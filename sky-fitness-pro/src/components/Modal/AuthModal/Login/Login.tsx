@@ -1,9 +1,10 @@
-// src/components/Modal/AuthModal/Login/Login.tsx
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { loginUser, getCurrentUser } from "../../../../utils/api";
 import { useUser } from "../../../../contexts/user";
+
+// === Вспомогательные функции для localStorage ===
+const STORAGE_NAME_KEY = (email?: string) => `sky_fitness_user_name_${email}`;
 
 interface ModalProps {
 	closeModal: () => void;
@@ -21,17 +22,22 @@ const Login: React.FC<ModalProps> = ({ closeModal, toggleModal, resetModal }) =>
 	const handleLogin = async () => {
 		try {
 			const { token } = await loginUser(email, password);
-			await getCurrentUser(token); // Используем только для валидации
+			await getCurrentUser(token);
 
-			// Сохраняем полный объект User
+			// ✅ Получаем имя из localStorage или email как fallback
+			const storedName = localStorage.getItem(STORAGE_NAME_KEY(email));
+			const name = storedName || email;
+
+			// ❗ ДОБАВЛЕНО: сохраняем имя в localStorage, даже если оно = email
+			localStorage.setItem(STORAGE_NAME_KEY(email), name);
+
 			setUser({
 				token,
 				uid: email,
-				name: email,
+				name,
 				email,
 			});
 
-			// Закрываем модалку и переходим на главную
 			closeModal();
 			navigate("/");
 		} catch (err: unknown) {

@@ -1,47 +1,59 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useUser } from "../../contexts/user"; // ✅ из contexts/user
+import { useUser } from "../../contexts/user";
+
+// === Вспомогательные функции для localStorage ===
+const STORAGE_NAME_KEY = (email?: string) => `sky_fitness_user_name_${email}`;
 
 interface HeaderProps {
 	openModal: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({ openModal }) => {
+	const navigate = useNavigate();
 	const [modalVisible, setModalVisible] = useState(false);
 	const modalRef = useRef<HTMLDivElement>(null);
-	const { user, logout } = useUser(); // ✅ logout из user context
-	const [name, setName] = useState(user?.name || "");
-	const navigate = useNavigate();
+	const { user, logout } = useUser();
 
-	const toggleModal = () => {
-		setModalVisible((prevModalVisible) => !prevModalVisible);
-	};
+	// ✅ Инициализация: user.name, fallback → localStorage → email
+	const [name, setName] = useState<string>(() => {
+		if (user?.name) return user.name;
+		if (user?.email) {
+			const stored = localStorage.getItem(STORAGE_NAME_KEY(user.email));
+			return stored || user.email;
+		}
+		return "";
+	});
 
+	// ✅ Синхронизация: user.name меняется → обновляем name
+	useEffect(() => {
+		if (!user?.email) return;
+
+		const stored = localStorage.getItem(STORAGE_NAME_KEY(user.email));
+
+		// Если user.name совпадает с email, обновляем из localStorage
+		if (user.name === user.email && stored && stored !== user.email) {
+			setName(stored);
+		} else {
+			setName(user.name || stored || user.email);
+		}
+	}, [user?.email, user?.name]); // ← Слушаем оба поля!
+
+	const toggleModal = () => setModalVisible((prev) => !prev);
 	const handleClickOutside = (event: MouseEvent) => {
 		if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
 			setModalVisible(false);
 		}
 	};
 
-	// 🔍 Используем уже сохранённое имя из user context (от API)
-	// getUserName не нужен, т.к. user.name обновляется при login/register
-
-	useEffect(() => {
-		if (user?.name) {
-			setName(user.name);
-		}
-	}, [user]);
-
 	useEffect(() => {
 		document.addEventListener("mousedown", handleClickOutside);
-		return () => {
-			document.removeEventListener("mousedown", handleClickOutside);
-		};
+		return () => document.removeEventListener("mousedown", handleClickOutside);
 	}, []);
 
 	return (
 		<div className="header flex flex-row justify-between relative">
-			<Link to={"/"} className="headerLogo">
+			<Link to="/" className="headerLogo">
 				<img className="w-56 h-9 mb-[15px]" src="/logo.svg" alt="logo" />
 				<p className="hidden sm:block text-lg opacity-50">Онлайн-тренировки для занятий дома</p>
 			</Link>
@@ -55,13 +67,13 @@ const Header: React.FC<HeaderProps> = ({ openModal }) => {
 					}
 				>
 					<div className="mb-[30px] flex gap-[10px] flex-col">
-						<p data-testid="user-name" className="hidden sm:block text-[24px]">{name || user?.name || "Default Name"}</p>
+						<p className="hidden sm:block text-[24px]">{name || "Default Name"}</p>
 						<p className="text-[16px] font-normal text-center text-[#999999]">Пользователь</p>
 					</div>
 
 					<div className="flex flex-col items-center gap-4">
 						<Link
-							to={"/profile"}
+							to="/profile"
 							onClick={toggleModal}
 							className="flex text-black text-lg font-normal flex-row justify-center items-center p-4 gap-2 w-full h-[52px] bg-[#BCEC30] hover:bg-[#C6FF00] active:bg-[#000000] active:text-[#FFFFFF] rounded-[46px]"
 						>
@@ -70,9 +82,9 @@ const Header: React.FC<HeaderProps> = ({ openModal }) => {
 
 						<button
 							onClick={() => {
-								toggleModal();
-								logout(); // ✅ локальный logout
+								logout();
 								navigate("/");
+								toggleModal();
 							}}
 							className="flex text-black text-lg font-normal flex-row justify-center items-center p-4 gap-2 w-full h-[52px] border border-black rounded-[46px] hover:bg-[#E9ECED] active:bg-[#000000] active:text-[#FFFFFF]"
 						>
@@ -80,19 +92,12 @@ const Header: React.FC<HeaderProps> = ({ openModal }) => {
 						</button>
 					</div>
 				</div>
+
 				{user ? (
 					<div onClick={toggleModal} className="flex gap-[12px] items-center cursor-pointer">
 						<img src="/profile-photo-mini.svg" alt="profile-photo-mini" />
-						<p className="hidden sm:block text-[24px]">{name || user.name || "Default Name"}</p>
-
-						<svg
-							className="hidden sm:block"
-							width="14"
-							height="9"
-							viewBox="0 0 14 9"
-							fill="none"
-							xmlns="http://www.w3.org/2000/svg"
-						>
+						<p className="hidden sm:block text-[24px]">{name || "Default Name"}</p>
+						<svg className="hidden sm:block" width="14" height="9" viewBox="0 0 14 9" fill="none" xmlns="http://www.w3.org/2000/svg">
 							<path d="M12.3553 1.03308L6.67773 6.7107L1.00012 1.03308" stroke="black" strokeWidth="2" />
 						</svg>
 					</div>

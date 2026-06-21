@@ -61,9 +61,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ closeModal }) => {
 
 									try {
 										const data = await loginUser(email, password);
-										console.log("🔍 Ответ от loginUser:", data); // 🟢 Оставьте для отладки
 										const token = data.token;
-										console.log("💡 Token:", token);
 
 										if (!token) {
 											alert("Токен не получен! Проверьте Network → auth/login → Response");
@@ -87,7 +85,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ closeModal }) => {
 								Войти
 							</button>
 							<button
-								
+
 								className="flex text-black text-lg font-normal flex-row justify-center items-center p-4 gap-2 w-full h-[52px] border border-black rounded-[46px] hover:bg-[#E9ECED] active:bg-[#000000] active:text-[#FFFFFF]"
 								onClick={() => setIsRegisterMode(true)}
 							>
