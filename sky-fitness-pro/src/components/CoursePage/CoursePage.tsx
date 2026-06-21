@@ -1,5 +1,3 @@
-// src/components/CoursePage/CoursePage.tsx
-
 import { useParams } from "react-router-dom";
 import { addCourseToUser, getCourseById } from "../../utils/api";
 import { useEffect, useState } from "react";
@@ -23,7 +21,6 @@ function CoursePage({ openModal }: CoursePageProps) {
 
 	const { user } = useUser();
 
-	// ✅ Выбор картинки по ID
 	useEffect(() => {
 		if (!id) return;
 		switch (id) {
@@ -36,14 +33,12 @@ function CoursePage({ openModal }: CoursePageProps) {
 		}
 	}, [id]);
 
-	// ✅ КРИТИЧЕСКИ ВАЖНО: Обновляем isCourseAdded и isButtonDisabled при изменении user.selectedCourses
 	useEffect(() => {
 		const courseAlreadyAdded = user?.selectedCourses?.includes(id!) || false;
 		setIsCourseAdded(courseAlreadyAdded);
 		setIsButtonDisabled(courseAlreadyAdded);
 	}, [user?.selectedCourses, id]);
 
-	// 🔍 Получение курса
 	useEffect(() => {
 		if (!id) return;
 
@@ -60,13 +55,12 @@ function CoursePage({ openModal }: CoursePageProps) {
 				setCourse(data);
 			})
 			.catch((err) => {
-				console.error("❌ Ошибка при загрузке курса:", err);
+				console.error("Ошибка при загрузке курса:", err);
 				setError("Не удалось загрузить курс.");
 			})
 			.finally(() => setIsLoading(false));
 	}, [id]);
 
-	// ✅ ДОП. СИНХРОНИЗАЦИЯ: Загружаем актуальные selectedCourses из API при открытии страницы (если токен есть)
 	useEffect(() => {
 		if (!user?.token || !id || isButtonDisabled) return;
 
@@ -94,10 +88,9 @@ function CoursePage({ openModal }: CoursePageProps) {
 		fetchSelectedCoursesFromAPI();
 	}, [user?.token, id, isButtonDisabled]);
 
-	// ✅ Добавление курса
 	function addCourse() {
 		if (!user?.token || !course?._id) {
-			console.error("❌ Ошибка: нет token или course._id");
+			console.error("Ошибка: нет token или course._id");
 			return;
 		}
 
@@ -107,13 +100,12 @@ function CoursePage({ openModal }: CoursePageProps) {
 				setIsButtonDisabled(true);
 			})
 			.catch((error) => {
-				console.error("❌ Ошибка при добавлении курса:", error);
+				console.error("Ошибка при добавлении курса:", error);
 				setIsButtonDisabled(false);
 				setIsCourseAdded(false);
 			});
 	}
 
-	// ✅ Цвет фона
 	useEffect(() => {
 		if (!id) return;
 		let bg_color = "";
@@ -128,7 +120,6 @@ function CoursePage({ openModal }: CoursePageProps) {
 		setBgColor(bg_color);
 	}, [id]);
 
-	// ✅ Специальные классы
 	useEffect(() => {
 		if (!id) return;
 		const specialIds = ["fi67sm", "q02a6i"];
@@ -136,11 +127,9 @@ function CoursePage({ openModal }: CoursePageProps) {
 		setSpecialClass((prev) => (prev ? `${prev} ${className}` : className));
 	}, [id]);
 
-	// 🛡️ Рендер
 	return (
 		<>
 			<div className="mt-[40px] sm:mt-[60px]">
-				{/* ✅ КАРТИНКА ПОД ЗАГОЛОВКОМ */}
 				{poster && (
 					<div className="w-full h-[250px] sm:h-[350px] rounded-[20px] overflow-hidden mb-[40px] sm:mb-[60px]">
 						<img
@@ -148,7 +137,7 @@ function CoursePage({ openModal }: CoursePageProps) {
 							alt="course-poster"
 							className="w-full h-full object-contain"
 							onError={(e) => {
-								console.error("❌ Ошибка загрузки картинки:", poster);
+								console.error("Ошибка загрузки картинки:", poster);
 								e.currentTarget.src = "/zagl.jpg";
 							}}
 						/>

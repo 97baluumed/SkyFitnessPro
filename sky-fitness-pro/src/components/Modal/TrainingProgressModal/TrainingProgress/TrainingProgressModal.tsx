@@ -1,5 +1,3 @@
-// src/components/Modal/TrainingProgressModal/TrainingProgress/TrainingProgressModal.tsx
-
 import React, { useState, useEffect } from "react";
 import "./TrainingProgressModal.css";
 import TrainingProgressItem from "../TrainingProgressItem/TrainingProgressItem";
@@ -15,7 +13,6 @@ interface ModalProps {
 const TrainingProgressModal: React.FC<ModalProps> = ({ closeModal, onSubmit, exercises, exerciseProgress }) => {
 	const [updatedQuantities, setUpdatedQuantities] = useState<{ [key: string]: number }>({});
 
-	// ✅ Инициализация — берём текущий прогресс
 	useEffect(() => {
 		const initialQuantities: { [key: string]: number } = {};
 		exercises.forEach((exercise) => {
@@ -51,7 +48,7 @@ const TrainingProgressModal: React.FC<ModalProps> = ({ closeModal, onSubmit, exe
 								_id={exercise._id}
 								name={exercise.name}
 								quantity={exercise.quantity}
-								currentProgress={exerciseProgress[exercise.name] ?? 0} // ✅ передаём текущий прогресс
+								currentProgress={exerciseProgress[exercise.name] ?? 0}
 								onQuantityChange={handleQuantityChange}
 								video={exercise.video}
 							/>

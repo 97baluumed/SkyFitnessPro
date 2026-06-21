@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useUser } from "../../contexts/user";
 
-// === Вспомогательные функции для localStorage ===
 const STORAGE_NAME_KEY = (email?: string) => `sky_fitness_user_name_${email}`;
 
 interface HeaderProps {
@@ -15,7 +14,6 @@ const Header: React.FC<HeaderProps> = ({ openModal }) => {
 	const modalRef = useRef<HTMLDivElement>(null);
 	const { user, logout } = useUser();
 
-	// ✅ Инициализация: user.name, fallback → localStorage → email
 	const [name, setName] = useState<string>(() => {
 		if (user?.name) return user.name;
 		if (user?.email) {
@@ -25,19 +23,17 @@ const Header: React.FC<HeaderProps> = ({ openModal }) => {
 		return "";
 	});
 
-	// ✅ Синхронизация: user.name меняется → обновляем name
 	useEffect(() => {
 		if (!user?.email) return;
 
 		const stored = localStorage.getItem(STORAGE_NAME_KEY(user.email));
 
-		// Если user.name совпадает с email, обновляем из localStorage
 		if (user.name === user.email && stored && stored !== user.email) {
 			setName(stored);
 		} else {
 			setName(user.name || stored || user.email);
 		}
-	}, [user?.email, user?.name]); // ← Слушаем оба поля!
+	}, [user?.email, user?.name]);
 
 	const toggleModal = () => setModalVisible((prev) => !prev);
 	const handleClickOutside = (event: MouseEvent) => {

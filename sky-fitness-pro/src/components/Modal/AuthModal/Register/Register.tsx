@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { registerUser, loginUser } from "../../../../utils/api";
 import { useUser } from "../../../../contexts/user";
 
-// === Вспомогательные функции для localStorage ===
 const STORAGE_NAME_KEY = (email?: string) => `sky_fitness_user_name_${email}`;
 
 export const Register = ({
@@ -45,11 +44,9 @@ export const Register = ({
             const data = await loginUser(email, password);
             const token = data.token;
 
-            // ✅ Получаем имя из localStorage или email как fallback
             const storedName = localStorage.getItem(STORAGE_NAME_KEY(email));
             const name = storedName || email;
 
-            // ❗ ДОБАВЛЕНО: сохраняем имя в localStorage
             localStorage.setItem(STORAGE_NAME_KEY(email), name);
 
             setUser({ token, uid: token, name, email });

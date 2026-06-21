@@ -1,7 +1,7 @@
 export type TrainingType = {
 	id: string;
 	_id: string;
-	images?: { // ✅ добавлен ? — опционально
+	images?: {
 		cardImage: string;
 		courseImage: string;
 	};

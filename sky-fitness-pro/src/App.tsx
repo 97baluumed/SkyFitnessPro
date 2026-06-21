@@ -22,7 +22,7 @@ function App() {
 					<Route path="/profile" element={<Profile />} />
 					<Route path="/course/:id" element={<CoursePage openModal={openModal} />} />
 					<Route
-						path="/training/:courseId/:trainingId" // ✅ ИЗМЕНИЛОСЬ: :trainingId вместо :id
+						path="/training/:courseId/:trainingId"
 						element={<TrainingPage />}
 					/>
 				</Routes>

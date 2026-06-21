@@ -1,5 +1,3 @@
-// src/components/Modal/TrainingSelectModal/TrainingSelectModal.tsx
-
 import React, { useEffect, useState } from "react";
 import "./TrainingSelectModal.css";
 import TrainingLink from "./TrainingLink/TrainingLink";
@@ -13,22 +11,22 @@ interface ModalProps {
 }
 
 const TrainingSelectModal: React.FC<ModalProps> = ({ closeModal, courseId }) => {
-	const [workoutInfo, setWorkoutInfo] = useState<Workout[]>([]); // ✅ Workout, а не Exercise
+	const [workoutInfo, setWorkoutInfo] = useState<Workout[]>([]);
 	const [isLoaded, setIsLoaded] = useState(false);
 	const { user } = useUser();
 
 	useEffect(() => {
 		const fetchWorkoutInfo = async () => {
 			if (!courseId) {
-				console.warn("⚠️ courseId не передан");
+				console.warn("courseId не передан");
 				setIsLoaded(true);
 				return;
 			}
 			if (!user || !user?.token?.trim()) {
 				if (!user) {
-					console.warn("⚠️ user не загружен");
+					console.warn("user не загружен");
 				} else {
-					console.error("❌ user.token отсутствует или пустой:", user?.token);
+					console.error("user.token отсутствует или пустой:", user?.token);
 				}
 				setIsLoaded(true);
 				return;
@@ -39,13 +37,12 @@ const TrainingSelectModal: React.FC<ModalProps> = ({ closeModal, courseId }) => 
 				if (Array.isArray(workouts)) {
 					setWorkoutInfo(workouts as Workout[]);
 				} else if (workouts?._id) {
-					// Если API вернул один объект, обернём в массив
 					setWorkoutInfo([workouts as Workout]);
 				} else {
 					setWorkoutInfo([]);
 				}
 			} catch (error) {
-				console.error("❌ Ошибка:", error);
+				console.error("Ошибка:", error);
 			} finally {
 				setIsLoaded(true);
 			}
@@ -82,7 +79,7 @@ const TrainingSelectModal: React.FC<ModalProps> = ({ closeModal, courseId }) => 
 								trainingId={workout._id}
 								name={workout.name}
 								courseId={courseId}
-								exercises={workout.exercises || []} // ✅ Теперь exercises доступен!
+								exercises={workout.exercises || []}
 							/>
 						))}
 						{workoutInfo.length === 0 && (

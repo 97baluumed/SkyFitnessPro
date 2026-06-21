@@ -1,6 +1,4 @@
-// src/components/Modal/TrainingProgressModal/TrainingProgressItem/TrainingProgressItem.tsx
-
-import { useState, useEffect } from "react"; // ✅ Добавлен useEffect
+import { useState, useEffect } from "react";
 import { Exercise } from "../../../../types/training";
 
 interface TrainingProgressItemProps extends Exercise {
@@ -11,7 +9,6 @@ interface TrainingProgressItemProps extends Exercise {
 function TrainingProgressItem({ name, quantity, onQuantityChange, currentProgress }: TrainingProgressItemProps) {
 	const [localValue, setLocalValue] = useState<number | "">(currentProgress !== undefined ? currentProgress : 0);
 
-	// ✅ Обновляем локальное значение, когда currentProgress меняется
 	useEffect(() => {
 		setLocalValue(currentProgress !== undefined ? currentProgress : 0);
 	}, [currentProgress]);
@@ -28,7 +25,7 @@ function TrainingProgressItem({ name, quantity, onQuantityChange, currentProgres
 			<input
 				type="number"
 				placeholder={quantity.toString()}
-				value={localValue === 0 ? "" : localValue} // ✅ "" для 0 (чтобы placeholder работал)
+				value={localValue === 0 ? "" : localValue}
 				className="text-[16px] placeholder:opacity-[60%] w-full h-[47px] text-base font-normal text-black-400 border border-gray-300 rounded-[8px] p-[16px]"
 				onChange={handleQuantityChange}
 			/>

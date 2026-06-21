@@ -1,5 +1,3 @@
-// src/components/Card/UserCards/UserCards.tsx
-
 import { useState, useEffect } from "react";
 import TrainingSelectModal from "../../Modal/TrainingSelectModal/TrainingSelectModal";
 import { CardType } from "../../../types/cards";
@@ -43,13 +41,12 @@ function UserCards({ courseId, nameRu, onDelete }: UserCardsProps) {
 				const workouts = await getWorkoutsByCourse(courseId, user.token);
 				setWorkoutInfo(Array.isArray(workouts) ? workouts : []);
 			} catch (error) {
-				console.error("❌ Ошибка при получении тренировок:", error);
+				console.error("Ошибка при получении тренировок:", error);
 			}
 		};
 		fetchWorkouts();
 	}, [courseId, user?.uid, user?.token]);
 
-	// ✅ ИСПРАВЛЕНО: Получаем прогресс по тренировкам — считаем avgProgress
 	useEffect(() => {
 		if (workoutInfo.length > 0 && user?.token) {
 			const fetchProgress = async () => {
@@ -67,7 +64,6 @@ function UserCards({ courseId, nameRu, onDelete }: UserCardsProps) {
 
 					const flatProgresses = allProgresses.flat();
 
-					// ✅ Исправлено: явные типы и убраны лишние переменные
 					const avgProgress = flatProgresses.length > 0
 						? flatProgresses.reduce((sum: number, val: number) => sum + val, 0) / flatProgresses.length
 						: 0;
@@ -77,7 +73,7 @@ function UserCards({ courseId, nameRu, onDelete }: UserCardsProps) {
 					setProgressData([progressPercent]);
 					setIsLoading(true);
 				} catch (error) {
-					console.error("❌ Ошибка при получении прогресса:", error);
+					console.error("Ошибка при получении прогресса:", error);
 					setIsLoading(true);
 				}
 			};
@@ -89,7 +85,6 @@ function UserCards({ courseId, nameRu, onDelete }: UserCardsProps) {
 
 	const visitedRatio = progressData.length > 0 ? progressData[0] : 0;
 
-	// ✅ Убраны неиспользуемые переменные: totalCompleted, totalWorkoutCount, completedWorkouts
 
 	async function deleteCourse() {
 		if (!user?.uid || !user?.token) return;
@@ -99,9 +94,9 @@ function UserCards({ courseId, nameRu, onDelete }: UserCardsProps) {
 			onDelete(courseId);
 		} catch (error) {
 			if (error instanceof Error && (error as Error).message.includes("не был добавлен")) {
-				console.warn(`ℹ️ Курс ${courseId} уже удалён или не был добавлен`);
+				console.warn(`Курс ${courseId} уже удалён или не был добавлен`);
 			} else {
-				console.error("❌ Ошибка при удалении курса:", error);
+				console.error("Ошибка при удалении курса:", error);
 			}
 		}
 	}
@@ -114,7 +109,7 @@ function UserCards({ courseId, nameRu, onDelete }: UserCardsProps) {
 				setProgressData([]);
 			})
 			.catch((error) => {
-				console.error("❌ Ошибка при сбросе прогресса:", error);
+				console.error("Ошибка при сбросе прогресса:", error);
 			});
 	}
 

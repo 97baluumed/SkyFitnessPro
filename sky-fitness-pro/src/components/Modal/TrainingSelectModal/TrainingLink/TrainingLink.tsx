@@ -1,5 +1,3 @@
-// src/components/TrainingSelectModal/TrainingLink/TrainingLink.tsx
-
 import { Link } from "react-router-dom";
 import { getProgress } from "../../../../utils/api";
 import { useState, useEffect } from "react";
@@ -10,7 +8,7 @@ interface TrainingLinkProps {
 	trainingId: string;
 	name: string;
 	courseId: string;
-	exercises: Exercise[]; // ✅ Теперь передаём упражнения
+	exercises: Exercise[];
 }
 
 const TrainingLink: React.FC<TrainingLinkProps> = ({ trainingId, name, courseId, exercises }) => {
@@ -22,16 +20,13 @@ const TrainingLink: React.FC<TrainingLinkProps> = ({ trainingId, name, courseId,
 
 		getProgress(user.token, courseId, trainingId)
 			.then((data) => {
-				// Если нет прогресса
 				if (!data || (!Array.isArray(data?.progressData) && typeof data?.progress !== "number")) {
 					setProgressStatus("not-started");
 					return;
 				}
 
-				// Прогресс как массив
 				if (Array.isArray(data?.progressData)) {
 					const progressData = data.progressData;
-					// ✅ Добавлены типы: q: number, i: number
 					const isFullyCompleted = progressData.every(
 						(q: number, i: number) => q >= (exercises[i]?.quantity || 0)
 					);
@@ -45,7 +40,6 @@ const TrainingLink: React.FC<TrainingLinkProps> = ({ trainingId, name, courseId,
 						setProgressStatus("not-started");
 					}
 				}
-				// Прогресс как процент (0–100)
 				else if (typeof data?.progress === "number") {
 					const progressPercent = data.progress;
 					if (progressPercent === 100) {
@@ -62,7 +56,6 @@ const TrainingLink: React.FC<TrainingLinkProps> = ({ trainingId, name, courseId,
 			});
 	}, [user?.token, courseId, trainingId, exercises]);
 
-	// ✅ Убираем дублирование: логика определяется по status
 	const isCompleted = progressStatus === "completed";
 	const isStarted = progressStatus === "started";
 

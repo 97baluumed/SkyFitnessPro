@@ -1,5 +1,3 @@
-// src/utils/api.ts
-
 const API_BASE = "https://wedev-api.sky.pro/api/fitness";
 
 // === Аутентификация ===
@@ -26,7 +24,7 @@ export const loginUser = async (email: string, password: string): Promise<{ toke
 		throw new Error(error.message);
 	}
 
-	return await res.json(); // { token: "..." }
+	return await res.json();
 };
 
 export const getCurrentUser = async (token: string) => {
@@ -41,7 +39,7 @@ export const getCurrentUser = async (token: string) => {
 		throw new Error("Ошибка при получении данных пользователя");
 	}
 
-	return await res.json(); // { email, selectedCourses: [...] }
+	return await res.json();
 };
 
 // === Курсы ===
@@ -67,7 +65,6 @@ export const getCourseById = async (id?: string) => {
 export const getCourse = getCourseById;
 export const getCourseByIdentifier = getCourseById;
 
-// ✅ ИСПРАВЛЕНО: getWorkoutsByCourse теперь принимает token
 export const getWorkoutsByCourse = async (courseId: string, token?: string) => {
 	const headers: Record<string, string> = {};
 	if (token) {
@@ -89,7 +86,7 @@ export const getWorkoutsByCourse = async (courseId: string, token?: string) => {
 	return await res.json();
 };
 
-export const getWorkoutsById = getWorkoutsByCourse; // для совместимости
+export const getWorkoutsById = getWorkoutsByCourse;
 
 // === Курсы пользователя ===
 export const addCourseToUser = async (token: string, courseId: string) => {
@@ -129,11 +126,10 @@ export const removeCourseFromUser = async (token: string, courseId: string): Pro
 		},
 	});
 
-	// ✅ Считаем 500 + "не был добавлен" — успешной операцией
 	if (res.status === 500) {
 		const errorText = await res.text();
 		if (errorText.includes("не был добавлен")) {
-			return; // не выбрасываем, не логируем
+			return;
 		}
 	}
 
@@ -147,14 +143,12 @@ export const removeCourseFromUser = async (token: string, courseId: string): Pro
 	return await res.json();
 };
 
-// Алиасы для совместимости
 export const deleteCourseToUser = removeCourseFromUser;
 export const getUserCourses = async (token: string) => {
 	return await getCurrentUser(token);
 };
 export const deleteProgress = removeCourseFromUser;
 
-// === Прогресс ===
 export const getProgress = async (token: string, courseId: string, workoutId?: string) => {
 	const url = workoutId
 		? `${API_BASE}/users/me/progress?courseId=${courseId}&workoutId=${workoutId}`
@@ -184,9 +178,8 @@ export const saveWorkoutProgress = async (
 		method: "PATCH",
 		headers: {
 			Authorization: `Bearer ${token}`,
-			// ❌ Убрали "Content-Type": "application/json"
 		},
-		body: JSON.stringify({ progressData }), // ✅ Массив, где i-й элемент = повторения для i-го упражнения
+		body: JSON.stringify({ progressData }),
 	});
 
 	if (!res.ok) {
@@ -232,7 +225,6 @@ export const getWorkoutById = async (courseId: string, workoutId: string, token?
 	return await res.json();
 };
 
-// ✅ ИСПРАВЛЕНО: Новая асинхронная функция для получения прогресса
 export const getRealQuantityWithoutExercises = async (
 	token: string,
 	courseId: string,
@@ -255,16 +247,12 @@ export const getRealQuantityWithoutExercises = async (
 
 	const data = await res.json();
 
-	// В зависимости от ответа API:
-	// Если data = { progress: 3 } или data = 3
 	if (typeof data === "number") return data;
 	if (typeof data?.progress === "number") return data.progress;
 
 	return 0;
 };
 
-// === Вспомогательные функции (для обработки строк и количества) — переименованы, чтобы не конфликтовать ===
-// Используются в TrainingProgressItem для placeholder и ввода
 export const extractQuantityFromString = (text: string): number => {
 	if (!text) return 0;
 	const match = text.match(/\d+/);

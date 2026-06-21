@@ -1,5 +1,3 @@
-// src/components/Modal/AuthModal/AuthModal.tsx
-
 import React, { useState } from "react";
 import Register from "./Register/Register";
 import { useNavigate } from "react-router-dom";
@@ -78,7 +76,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ closeModal }) => {
 										navigate("/profile");
 									} catch (error) {
 										alert("Ошибка входа: " + (error as Error).message);
-										console.error("❌ Ошибка входа:", error); // 🟢 Оставьте для отладки
+										console.error("Ошибка входа:", error);
 									}
 								}}
 							>

@@ -1,13 +1,11 @@
-// src/contexts/user.tsx
-
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
 type User = {
 	token: string;
 	uid: string;
-	name: string; // email
+	name: string;
 	email: string;
-	selectedCourses?: string[]; // ✅ Добавлено!
+	selectedCourses?: string[];
 };
 
 interface UserContextType {

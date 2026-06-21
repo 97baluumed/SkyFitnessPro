@@ -1,5 +1,3 @@
-// src/components/TrainingPage/TrainingPage.tsx
-
 import ExerciseProgress from "./ExerciseProgress/ExerciseProgress";
 import TrainingProgressModal from "../Modal/TrainingProgressModal/TrainingProgress/TrainingProgressModal";
 import SaveTrainingProgressModal from "../Modal/TrainingProgressModal/SaveTrainingProgressModal";
@@ -14,7 +12,7 @@ import { useUser } from "../../hooks/useUser";
 import { Exercise } from "../../types/training";
 
 function TrainingPage() {
-	const { courseId, trainingId } = useParams<{ courseId: string; trainingId: string }>(); // ✅ Добавлен trainingId
+	const { courseId, trainingId } = useParams<{ courseId: string; trainingId: string }>();
 	const [isTrainingProgressModalOpen, setIsTrainingProgressModalOpen] = useState(false);
 	const [isSaveTrainingProgressModalOpen, setIsSaveTrainingProgressModalOpen] = useState(false);
 	const [workout, setWorkout] = useState<Exercise | null>(null);
@@ -32,10 +30,10 @@ function TrainingPage() {
 	const closeTrainingProgressModal = () => setIsTrainingProgressModalOpen(false);
 
 	const handleSaveTrainingProgress = (updatedQuantities: { [exerciseName: string]: number }) => {
-		console.log("✅ handleSaveTrainingProgress вызван, updatedQuantities:", updatedQuantities);
+		console.log("handleSaveTrainingProgress вызван, updatedQuantities:", updatedQuantities);
 
 		if (!user?.token || !courseId || !workout) {
-			console.error("❌ Отсутствуют данные (token, courseId или workout)");
+			console.error("Отсутствуют данные (token, courseId или workout)");
 			return;
 		}
 
@@ -44,7 +42,7 @@ function TrainingPage() {
 
 		saveWorkoutProgress(user.token, courseId, workout._id, progressData)
 			.then(() => {
-				console.log("✅ Прогресс успешно сохранён");
+				console.log("Прогресс успешно сохранён");
 				localStorage.setItem("sky_fitness_progress_updated", Date.now().toString());
 
 				getProgress(user.token, courseId, workout._id)
@@ -70,18 +68,17 @@ function TrainingPage() {
 						setIsSaveTrainingProgressModalOpen(true);
 					})
 					.catch((error) => {
-						console.error("❌ Ошибка получения прогресса после сохранения:", error);
+						console.error("Ошибка получения прогресса после сохранения:", error);
 						setIsTrainingProgressModalOpen(false);
 						setIsSaveTrainingProgressModalOpen(true);
 					});
 			})
 			.catch((error) => {
-				console.error("❌ Ошибка сохранения прогресса:", error);
+				console.error("Ошибка сохранения прогресса:", error);
 				alert(`Ошибка сохранения: ${error.message}`);
 			});
 	};
 
-	// ✅ Загружаем конкретную тренировку по trainingId
 	useEffect(() => {
 		if (courseId && trainingId && user?.token) {
 			getWorkoutsByCourse(courseId, user.token)
@@ -102,7 +99,7 @@ function TrainingPage() {
 					}
 				})
 				.catch((error: unknown) => {
-					console.error("❌ Ошибка загрузки тренировки:", error);
+					console.error("Ошибка загрузки тренировки:", error);
 					setWorkout(null);
 					setExercises([]);
 				})
@@ -110,7 +107,6 @@ function TrainingPage() {
 		}
 	}, [courseId, trainingId, user?.token]);
 
-	// ✅ Получаем текущий прогресс по курсу
 	useEffect(() => {
 		if (user?.token && courseId && workout && exercises.length > 0) {
 			getProgress(user.token, courseId, workout._id)
@@ -130,9 +126,9 @@ function TrainingPage() {
 					}
 
 					setExerciseProgress(newProgress);
-					console.log("✅ updated exerciseProgress:", newProgress);
+					console.log("updated exerciseProgress:", newProgress);
 				})
-				.catch((error) => console.error("❌ Ошибка прогресса:", error));
+				.catch((error) => console.error("Ошибка прогресса:", error));
 		}
 	}, [user?.token, courseId, workout, exercises]);
 
@@ -146,9 +142,9 @@ function TrainingPage() {
 								setWithoutExercise(true);
 							}
 						})
-						.catch((error: unknown) => console.error("❌ Ошибка прогресса:", error));
+						.catch((error: unknown) => console.error("Ошибка прогресса:", error));
 				})
-				.catch((error: unknown) => console.error("❌ Ошибка сохранения:", error));
+				.catch((error: unknown) => console.error("Ошибка сохранения:", error));
 		}
 	};
 

@@ -1,11 +1,8 @@
-// src/app/Main/Main.tsx
-
 import { useEffect, useState } from "react";
 import { getCourses } from "../../utils/api";
 import Card from "../../components/Card/Card";
 import { TrainingType } from "../../types/training";
 
-// ✅ Вынесли вне компонента, чтобы избежать проблем с deps
 const COURSE_ORDER = ["ab1c3f", "kfpq8e", "ypox9r", "fi67sm", "q02a6i"];
 
 function Main() {
@@ -16,7 +13,6 @@ function Main() {
 		}
 	};
 
-	// ✅ Исправлено: case "fi67sm" вместо "6i67sm"
 	const getImageByCourseId = (id: string): string => {
 		switch (id) {
 			case "ab1c3f": return "/yoga.jpg";

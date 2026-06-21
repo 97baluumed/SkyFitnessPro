@@ -1,15 +1,10 @@
-// src/components/Profile/Profile.tsx
-
 import { useEffect, useState, useCallback } from "react";
 import UserCards from "../Card/UserCards/UserCards";
-import PasswordChange from "../Modal/PasswordChange/PasswordChange";
-import PasswordChangeSuccess from "../Modal/PasswordChange/PasswordChangeSuccess";
 import { useUser } from "../../contexts/user";
 import { getCourseById, removeCourseFromUser } from "../../utils/api";
 import { useNavigate } from "react-router-dom";
 import { TrainingType } from "../../types/training";
 
-// === Вспомогательные функции для localStorage ===
 const STORAGE_NAME_KEY = (email?: string) => `sky_fitness_user_name_${email}`;
 
 function Profile() {
@@ -36,8 +31,7 @@ function Profile() {
 		if (name.trim() && user?.email) {
 			const trimmedName = name.trim();
 			localStorage.setItem(STORAGE_NAME_KEY(user.email), trimmedName);
-			console.log("✅ Profile: call setUser with name =", trimmedName);
-			setUser({ ...user, name: trimmedName }); // ←Header должен обновиться
+			setUser({ ...user, name: trimmedName });
 			setIsEditingName(false);
 		} else {
 			alert("Имя не может быть пустым");
@@ -46,7 +40,6 @@ function Profile() {
 
 	const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value);
 
-	// ✅ Функция для обновления курсов из user.selectedCourses
 	const refetchCourses = useCallback(async () => {
 		if (!user?.selectedCourses || user.selectedCourses.length === 0) {
 			console.log("📦 0. selectedCourses пустой или undefined");
@@ -60,7 +53,7 @@ function Profile() {
 					const course = await getCourseById(courseId);
 					return course;
 				} catch (e) {
-					console.warn(`⚠️ Не удалось загрузить курс`, courseId, e);
+					console.warn(`Не удалось загрузить курс`, courseId, e);
 					return null;
 				}
 			})
@@ -70,7 +63,6 @@ function Profile() {
 		setCourseInfoArray(validCourses);
 	}, [user?.selectedCourses]);
 
-	// ✅ Загрузка данных пользователя с обновлением имени из API
 	useEffect(() => {
 		const controller = new AbortController();
 
@@ -104,7 +96,7 @@ function Profile() {
 				await refetchCourses();
 			} catch (error) {
 				if (error instanceof Error && error.name !== "AbortError") {
-					console.error("❌ Ошибка при получении данных пользователя:", error);
+					console.error("Ошибка при получении данных пользователя:", error);
 				}
 			} finally {
 				setIsLoading(false);
@@ -113,17 +105,15 @@ function Profile() {
 
 		fetchUserInfo();
 
-		return () => controller.abort(); // ✅ Отмена при размонтировании
+		return () => controller.abort();
 	}, [user?.token]);
 
-	// ✅ Используем refetchCourses при изменении selectedCourses
 	useEffect(() => {
 		if (user?.selectedCourses) {
 			refetchCourses();
 		}
 	}, [user?.selectedCourses, refetchCourses]);
 
-	// ✅ handleDeleteCourse уже обновляет user.selectedCourses — refetchCourses сработает автоматически
 	const handleDeleteCourse = async (courseId: string) => {
 		if (!user?.token) return;
 		try {
@@ -135,7 +125,7 @@ function Profile() {
 				console.warn("Курс уже удалён:", courseId);
 				return;
 			}
-			console.error("❌ Ошибка при удалении курса:", error);
+			console.error("Ошибка при удалении курса:", error);
 			alert("Ошибка при удалении курса");
 		}
 	};
@@ -145,20 +135,6 @@ function Profile() {
 		if (element) {
 			element.scrollIntoView({ behavior: "smooth" });
 		}
-	};
-
-	const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
-	const [isPasswordChanged, setIsPasswordChanged] = useState(false);
-
-	const openPasswordModal = () => {
-		setIsPasswordModalOpen(true);
-		setIsPasswordChanged(false);
-	};
-
-	const closePasswordModal = () => setIsPasswordModalOpen(false);
-
-	const handlePasswordChange = () => {
-		setIsPasswordChanged(true);
 	};
 
 	if (!user || isLoading) {
@@ -213,12 +189,6 @@ function Profile() {
 
 						<div className="flex-col flex sm:flex-row gap-[10px]">
 							<button
-								className="w-[300px] h-[50px] sm:w-[192px] sm:h-[52px] bg-[#BCEC30] rounded-[46px] hover:bg-[#C6FF00] active:bg-[#000000] active:text-[#FFFFFF] text-lg"
-								onClick={openPasswordModal}
-							>
-								Изменить пароль
-							</button>
-							<button
 								onClick={logoutUser}
 								className="w-[300px] h-[50px] sm:w-[192px] sm:h-[52px] border border-black bg-[#ffffff] rounded-[46px] hover:bg-[#E9ECED] active:bg-[#000000] active:text-[#FFFFFF] text-lg"
 							>
@@ -239,7 +209,6 @@ function Profile() {
 							<UserCards
 								key={courseItem._id}
 								courseId={courseItem._id}
-								// ✅ Безопасно, если courseItem.images отсутствует — вернется fallback
 								image={courseItem.images?.cardImage || "/zagl.jpg"}
 								nameRu={courseItem.nameRU}
 								onDelete={handleDeleteCourse}
@@ -263,16 +232,6 @@ function Profile() {
 					</button>
 				</div>
 			</div>
-
-			{isPasswordModalOpen && (
-				<>
-					{isPasswordChanged ? (
-						<PasswordChangeSuccess closeModal={closePasswordModal} />
-					) : (
-						<PasswordChange closeModal={closePasswordModal} onSubmit={handlePasswordChange} />
-					)}
-				</>
-			)}
 		</div>
 	);
 }
