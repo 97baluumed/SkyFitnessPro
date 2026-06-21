@@ -1,108 +1,93 @@
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import React, { useState } from "react";
-import { auth } from "../../../../utils/firebase";
-import { addUser } from "../../../../utils/api";
+// src/components/Modal/AuthModal/Register/Register.tsx
 
-interface ModalProps {
-	closeModal: () => void;
-	toggleModal: () => void;
-}
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { registerUser, loginUser } from "../../../../utils/api";
+import { useUser } from "../../../../contexts/user";
 
-const Register: React.FC<ModalProps> = ({ closeModal, toggleModal }) => {
-	const [email, setEmail] = useState("");
-	const [password, setPassword] = useState("");
-	const [copyPassword, setcopyPassword] = useState("");
-	const [error, setError] = useState("");
+export const Register = ({
+    closeModal,
+    setIsRegisterMode
+}: {
+    closeModal: () => void;
+    setIsRegisterMode: (val: boolean) => void;
+}) => {
+    const { setUser } = useUser();
+    const navigate = useNavigate();
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [error, setError] = useState("");
 
-	function register() {
-		if (password !== copyPassword) {
-			setError("Пароли не совпадают");
-			return;
-		}
+    const validatePassword = (pwd: string) => {
+        // ✅ Упрощённая валидация: только длина
+        if (pwd.length < 6) return "Пароль должен содержать не менее 6 символов";
+        return null;
+    };
 
-		createUserWithEmailAndPassword(auth, email, password)
-			.then((userCredential) => {
-				console.log(userCredential);
-				setEmail("");
-				setPassword("");
-				setcopyPassword("");
-				addUser(userCredential.user.uid);
-				closeModal();
-			})
-			.catch((error: unknown) => {
-				if (error instanceof Error) {
-					if (error.message === "Firebase: Error (auth/invalid-email).") {
-						setError("email введен некорректно");
-					} else if (error.message === "Firebase: Password should be at least 6 characters (auth/weak-password).") {
-						setError("Пароль должен быть не менее 6 символов");
-					} else {
-						setError("Ошибка регистрации, попробуйте позже");
-					}
-				}
-			});
-	}
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError("");
 
-	return (
-		<div className="fixed inset-0 flex justify-center items-center bg-gray-900 bg-opacity-50" onClick={closeModal}>
-			<div
-				className="relative flex flex-col items-center p-10 gap-12 w-[360px] h-[auto] bg-white shadow-[0_4px_67px_-12px_rgba(0,0,0,0.13)] rounded-[30px]"
-				onClick={(e) => e.stopPropagation()}
-			>
-				<img src="/logo.svg" alt="logo" />
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            setError("Введите корректный email");
+            return;
+        }
 
-				<div className="flex flex-col items-center gap-8 w-[280px] h-[auto]">
-					<div className="flex flex-col items-center gap-[10px] w-[280px]">
-						<div className="flex flex-row items-center gap-2 w-[280px] h-[52px] border border-gray-300 rounded-[8px]">
-							<input
-								type="email"
-								placeholder="Эл. почта"
-								className="text-[18px] w-full h-[49px] text-base font-normal text-black-400 rounded-[8px] p-[18px]"
-								value={email}
-								onChange={(e) => setEmail(e.target.value)}
-							/>
-						</div>
+        const passwordError = validatePassword(password);
+        if (passwordError) {
+            setError(passwordError);
+            return;
+        }
 
-						<div className="flex flex-row items-center gap-2 w-[280px] h-[52px] border border-gray-300 rounded-[8px]">
-							<input
-								type="password"
-								placeholder="Пароль"
-								className="text-[18px] w-full h-[49px] text-base font-normal text-black-400 rounded-[8px] p-[18px]"
-								value={password}
-								onChange={(e) => setPassword(e.target.value)}
-							/>
-						</div>
+        try {
+            await registerUser(email, password);
+            const data = await loginUser(email, password);
+            const token = data.token;
+            setUser({ token, uid: token, name: email, email });
+            closeModal();
+            navigate("/profile");
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "Ошибка регистрации");
+        }
+    };
 
-						<div className="flex flex-row items-center gap-2 w-[280px] h-[52px] border border-gray-300 rounded-[8px]">
-							<input
-								type="password"
-								placeholder="Повторите пароль"
-								className="text-[18px] w-full h-[49px] text-base font-normal text-black-400 rounded-[8px] p-[18px]"
-								value={copyPassword}
-								onChange={(e) => setcopyPassword(e.target.value)}
-							/>
-						</div>
-						<p>{error ? error : ""}</p>
-					</div>
-
-					<div className="flex flex-col items-center gap-2 w-[280px]">
-						<button
-							onClick={register}
-							className="flex text-black text-lg font-normal flex-row justify-center items-center p-4 gap-2 w-full h-[52px] bg-[#BCEC30] hover:bg-[#C6FF00] active:bg-[#000000] active:text-[#FFFFFF] rounded-[46px]"
-						>
-							Зарегистрироваться
-						</button>
-
-						<button
-							className="flex text-black text-lg font-normal flex-row justify-center items-center p-4 gap-2 w-full h-[52px] border border-black rounded-[46px] hover:bg-[#E9ECED] active:bg-[#000000] active:text-[#FFFFFF]"
-							onClick={toggleModal}
-						>
-							Войти
-						</button>
-					</div>
-				</div>
-			</div>
-		</div>
-	);
+    return (
+        <div className="flex flex-col items-center gap-8 w-full">
+            <p className="text-[24px] font-bold mb-4">Регистрация</p>
+            <form onSubmit={handleSubmit}>
+                <div className="flex flex-col gap-2 w-full">
+                    <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="Email"
+                        className="w-full h-[52px] border border-gray-300 rounded-[8px] p-[18px]"
+                    />
+                    <input
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Пароль"
+                        className="w-full h-[52px] border border-gray-300 rounded-[8px] p-[18px]"
+                    />
+                    {error && <p className="text-red-500">{error}</p>}
+                </div>
+                <button
+                    type="submit"
+                    className="flex text-black text-lg font-normal flex-row justify-center items-center p-4 gap-2 w-full h-[52px] bg-[#BCEC30] hover:bg-[#C6FF00] active:bg-[#000000] active:text-[#FFFFFF] rounded-[46px] mt-4"
+                >
+                    Зарегистрироваться
+                </button>
+            </form>
+            <button
+                onClick={() => setIsRegisterMode(false)}
+                className="flex text-black text-lg font-normal flex-row justify-center items-center p-4 gap-2 w-full h-[52px] border border-black rounded-[46px] hover:bg-[#E9ECED] active:bg-[#000000] active:text-[#FFFFFF]"
+            >
+                Войти
+            </button>
+        </div>
+    );
 };
 
 export default Register;

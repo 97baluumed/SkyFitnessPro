@@ -1,7 +1,7 @@
 export type TrainingType = {
 	id: string;
 	_id: string;
-	images: {
+	images?: { // ✅ добавлен ? — опционально
 		cardImage: string;
 		courseImage: string;
 	};
@@ -9,6 +9,7 @@ export type TrainingType = {
 	description: string;
 	directions: string[];
 	fitting: string[];
+
 };
 
 export interface Exercise {

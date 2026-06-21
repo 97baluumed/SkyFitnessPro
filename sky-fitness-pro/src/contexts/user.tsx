@@ -1,72 +1,78 @@
-import { createContext, useState, useEffect, ReactNode } from "react";
-import { auth } from "../../src/utils/firebase";
-import { User } from "firebase/auth";
+// src/contexts/user.tsx
 
-function getUserFromLocalStorage() {
-	try {
-		return JSON.parse(localStorage.getItem("user") || "null");
-	} catch (error) {
-		return null;
-	}
-}
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
-export interface UserProp {
+type User = {
+	token: string;
+	uid: string;
+	name: string; // email
+	email: string;
+	selectedCourses?: string[]; // ✅ Добавлено!
+};
+
+interface UserContextType {
 	user: User | null;
-	name: string | undefined;
-	loginUser(newUser: User): void;
-	logoutUser(): void;
-	updateUserName(newName: string): void;
+	setUser: (user: User | null) => void;
+	logout: () => void;
 }
 
-export const UserContext = createContext<UserProp>({} as UserProp);
+const UserContext = createContext<UserContextType>({
+	user: null,
+	setUser: () => { },
+	logout: () => { },
+});
 
 export const UserProvider = ({ children }: { children: ReactNode }) => {
-	const [user, setUser] = useState(getUserFromLocalStorage());
-	const [name, setName] = useState<string | undefined>(user?.displayName);
+	const [user, setUser] = useState<User | null>(null);
 
 	useEffect(() => {
-		const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
-			if (firebaseUser) {
-				setUser(firebaseUser);
-				localStorage.setItem("user", JSON.stringify(firebaseUser));
-				setName(firebaseUser.displayName || undefined); // Установите имя, если доступно
-			} else {
-				setUser(null);
-				setName(undefined);
-				localStorage.removeItem("user");
-			}
-		});
+		const storedUser = localStorage.getItem("fitness_user");
+		const storedToken = localStorage.getItem("fitness_token");
 
-		return () => unsubscribe();
-	}, []);
-
-	function loginUser(newUser: User) {
-		setUser(newUser);
-		localStorage.setItem("user", JSON.stringify(newUser));
-		setName(newUser.displayName || undefined); // Установите имя при входе
-	}
-
-	function logoutUser() {
-		setUser(null);
-		setName(undefined);
-		localStorage.removeItem("user");
-	}
-
-	async function updateUserName(newName: string) {
-		if (user) {
+		if (storedUser && storedToken) {
 			try {
-				await user.updateProfile({ displayName: newName });
-				setName(newName);
-				localStorage.setItem("user", JSON.stringify({ ...user, displayName: newName }));
-			} catch (error) {
-				console.error("Ошибка при обновлении имени:", error);
+				const parsedUser = JSON.parse(storedUser);
+				if (parsedUser.token === storedToken) {
+					setUser(parsedUser);
+				} else {
+					localStorage.removeItem("fitness_user");
+					localStorage.removeItem("fitness_token");
+				}
+			} catch {
+				localStorage.removeItem("fitness_user");
+				localStorage.removeItem("fitness_token");
 			}
 		}
-	}
+	}, []);
+
+	const handleSetUser = (userData: User | null) => {
+		setUser(userData);
+		if (userData) {
+			localStorage.setItem("fitness_user", JSON.stringify(userData));
+			localStorage.setItem("fitness_token", userData.token);
+		} else {
+			localStorage.removeItem("fitness_user");
+			localStorage.removeItem("fitness_token");
+		}
+	};
+
+	const handleLogout = () => {
+		handleSetUser(null);
+	};
 
 	return (
-		<UserContext.Provider value={{ user, name, loginUser, logoutUser, updateUserName }}>
+		<UserContext.Provider value={{ user, setUser: handleSetUser, logout: handleLogout }}>
 			{children}
 		</UserContext.Provider>
 	);
 };
+
+export const useUser = () => {
+	const context = useContext(UserContext);
+	if (!context) {
+		throw new Error("useUser must be used within UserProvider");
+	}
+	return context;
+};
+
+export { UserContext };

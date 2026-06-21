@@ -1,27 +1,142 @@
-import { useEffect, useState } from "react";
+// src/components/Profile/Profile.tsx
+
+import { useEffect, useState, useCallback } from "react";
 import UserCards from "../Card/UserCards/UserCards";
 import PasswordChange from "../Modal/PasswordChange/PasswordChange";
 import PasswordChangeSuccess from "../Modal/PasswordChange/PasswordChangeSuccess";
-import { useUser } from "../../hooks/useUser";
-import { addUserName, getCourseById, getUserCourses, getUserName } from "../../utils/api";
+import { useUser } from "../../contexts/user";
+import { getCourseById, removeCourseFromUser } from "../../utils/api";
 import { useNavigate } from "react-router-dom";
 import { TrainingType } from "../../types/training";
 
+// === Вспомогательные функции для localStorage ===
+const STORAGE_NAME_KEY = (email?: string) => `sky_fitness_user_name_${email}`;
+
 function Profile() {
-	const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
-	const [isPasswordChanged, setIsPasswordChanged] = useState(false);
-	const { user, logoutUser, loginUser } = useUser();
-	const [userCourses, setUserCourses] = useState<TrainingType[]>([]);
-	const [courseInfoArray, setCourseInfoArray] = useState<TrainingType[]>([]);
+	const { user, logout, setUser } = useUser();
+	const [name, setName] = useState<string>(() => {
+		if (!user?.email) return "";
+		const stored = localStorage.getItem(STORAGE_NAME_KEY(user.email));
+		return stored || user.email;
+	});
+
 	const [isEditingName, setIsEditingName] = useState(false);
-	const [name, setName] = useState<string | undefined>();
+	const [courseInfoArray, setCourseInfoArray] = useState<TrainingType[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const navigate = useNavigate();
 
-	const logout = () => {
-		logoutUser();
+	const logoutUser = () => {
+		logout();
 		navigate("/");
 	};
+
+	const handleEditName = () => setIsEditingName(true);
+
+	const handleSaveName = () => {
+		if (name.trim() && user?.email) {
+			localStorage.setItem(STORAGE_NAME_KEY(user.email), name.trim());
+			setUser({ ...user, name: name.trim() });
+			setIsEditingName(false);
+		} else {
+			alert("Имя не может быть пустым");
+		}
+	};
+
+	const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value);
+
+	// ✅ Функция для обновления курсов из user.selectedCourses
+	const refetchCourses = useCallback(async () => {
+		if (!user?.selectedCourses || user.selectedCourses.length === 0) {
+			console.log("📦 0. selectedCourses пустой или undefined");
+			setCourseInfoArray([]);
+			return;
+		}
+
+
+		const coursesData = await Promise.all(
+			user.selectedCourses.map(async (courseId: string) => {
+				try {
+					const course = await getCourseById(courseId);
+					return course;
+				} catch (e) {
+					console.warn(`⚠️ Не удалось загрузить курс`, courseId, e);
+					return null;
+				}
+			})
+		);
+
+		const validCourses = coursesData.filter(Boolean) as TrainingType[];
+		setCourseInfoArray(validCourses);
+	}, [user?.selectedCourses]);
+
+	// ✅ Загрузка данных пользователя
+	useEffect(() => {
+		if (!user?.token) return;
+
+		const fetchUserInfo = async () => {
+			try {
+				const API_BASE = "https://wedev-api.sky.pro/api/fitness";
+				const res = await fetch(`${API_BASE}/users/me`, {
+					headers: { Authorization: `Bearer ${user.token}` }
+				});
+
+				if (!res.ok) {
+					throw new Error(`API error: ${res.status}`);
+				}
+
+				const userData = await res.json();
+				// ✅ Исправлено: userData.user.selectedCourses
+				if (userData.user?.selectedCourses) {
+					setUser({
+						...user,
+						selectedCourses: userData.user.selectedCourses
+					});
+				}
+
+				await refetchCourses();
+			} catch (error) {
+				console.error("❌ Ошибка при получении данных пользователя:", error);
+			} finally {
+				setIsLoading(false);
+			}
+		};
+
+		fetchUserInfo();
+	}, [user?.token]);
+
+	// ✅ Используем refetchCourses при изменении selectedCourses
+	useEffect(() => {
+		if (user?.selectedCourses) {
+			refetchCourses();
+		}
+	}, [user?.selectedCourses, refetchCourses]);
+
+	// ✅ handleDeleteCourse уже обновляет user.selectedCourses — refetchCourses сработает автоматически
+	const handleDeleteCourse = async (courseId: string) => {
+		if (!user?.token) return;
+		try {
+			await removeCourseFromUser(user.token, courseId);
+			const updatedSelectedCourses = user.selectedCourses?.filter((id: string) => id !== courseId);
+			setUser({ ...user, selectedCourses: updatedSelectedCourses });
+		} catch (error) {
+			if (error instanceof Error && (error as Error).message.includes("не был добавлен")) {
+				console.warn("Курс уже удалён:", courseId);
+				return; // ❗ не выбрасываем дальше — ошибка уже "подавлена"
+			}
+			console.error("❌ Ошибка при удалении курса:", error);
+			alert("Ошибка при удалении курса");
+		}
+	};
+
+	const scrollToCourses = () => {
+		const element = document.getElementById("my_courses");
+		if (element) {
+			element.scrollIntoView({ behavior: "smooth" });
+		}
+	};
+
+	const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+	const [isPasswordChanged, setIsPasswordChanged] = useState(false);
 
 	const openPasswordModal = () => {
 		setIsPasswordModalOpen(true);
@@ -34,87 +149,8 @@ function Profile() {
 		setIsPasswordChanged(true);
 	};
 
-	const handleEditName = () => {
-		setIsEditingName(true);
-	};
-
-	const handleSaveName = async () => {
-		setIsEditingName(false);
-		if (user) {
-			// Проверка на наличие пользователя
-			try {
-				await addUserName(user.uid, name);
-				const newName = await getUserName(user.uid).then((data) => data.name);
-				setName(newName);
-				// Обновляем имя в контексте
-				loginUser({ ...user, displayName: newName });
-			} catch (error: unknown) {
-				console.error("Ошибка при сохранении имени:", error);
-			}
-		}
-	};
-
-	const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		setName(e.target.value);
-	};
-
-	function scrollToCourses() {
-		const element = document.getElementById("my_courses");
-		if (element) {
-			element.scrollIntoView({ behavior: "smooth" });
-		}
-	}
-
-	useEffect(() => {
-		async function fetchUserInfo() {
-			if (user) {
-				// Проверка на наличие пользователя
-				try {
-					const response = await getUserCourses(user.uid);
-					if (response) {
-						setUserCourses(Object.values(response));
-						const savedName = await getUserName(user.uid).then((data) => data.name);
-						setName(savedName || "Указать имя");
-						setIsLoading(false); // Данные загружены
-					}
-				} catch (error: unknown) {
-					console.error("Ошибка при получении данных пользователя:", error);
-					setIsLoading(false); // Если ошибка, загрузка все равно заканчивается
-				} finally {
-					setIsLoading(false);
-				}
-			}
-		}
-
-		fetchUserInfo();
-	}, [user]);
-
-	const handleDeleteCourse = (courseId: string) => {
-		setCourseInfoArray(courseInfoArray.filter((course) => course._id !== courseId));
-	};
-
-	useEffect(() => {
-		async function fetchCourseInfo() {
-			if (userCourses.length > 0) {
-				try {
-					const courseInfoArray = await Promise.all(
-						userCourses.map(async (course) => {
-							const response = await getCourseById(course.id);
-							return response;
-						}),
-					);
-					setCourseInfoArray(courseInfoArray);
-				} catch (error: unknown) {
-					console.error("Ошибка при получении информации о курсе:", error);
-				}
-			}
-		}
-
-		fetchCourseInfo();
-	}, [userCourses]);
-
-	if (!user) {
-		return <p>Загрузка...</p>; // Пока данные пользователя загружаются
+	if (!user || isLoading) {
+		return <p>Загрузка...</p>;
 	}
 
 	return (
@@ -134,17 +170,20 @@ function Profile() {
 							{isEditingName ? (
 								<input
 									type="text"
-									placeholder="Указать имя"
 									value={name}
 									onChange={handleNameChange}
+									placeholder="Указать имя"
 									className="text-[24px] sm:text-[32px] text-start mb-[18px] sm:mb-[30px] text-[#999999] border-solid border-[1px] border-[#D3D3D3] rounded-[8px] outline-none pl-1.5"
 								/>
 							) : (
 								<p className="text-[24px] sm:text-[32px] font-medium text-start mb-[18px] sm:mb-[30px]">
-									{name === undefined ? "Указать имя" : name}
+									{name}
 								</p>
 							)}
-							<button className="flex items-end h-[48px]" onClick={isEditingName ? handleSaveName : handleEditName}>
+							<button
+								className="flex items-end h-[48px]"
+								onClick={isEditingName ? handleSaveName : handleEditName}
+							>
 								<svg className="w-[35px] h-[35px]">
 									{isEditingName ? (
 										<use xlinkHref="./icon/sprite.svg#icon-save" />
@@ -156,7 +195,7 @@ function Profile() {
 						</div>
 
 						<div className="flex flex-col items-start mb-[20px] sm:mb-[30px]">
-							<p>Логин: {user?.email}</p> {/* Безопасное обращение к полю email */}
+							<p>Логин: {user?.email}</p>
 							<p>Пароль: **********</p>
 						</div>
 
@@ -168,7 +207,7 @@ function Profile() {
 								Изменить пароль
 							</button>
 							<button
-								onClick={logout}
+								onClick={logoutUser}
 								className="w-[300px] h-[50px] sm:w-[192px] sm:h-[52px] border border-black bg-[#ffffff] rounded-[46px] hover:bg-[#E9ECED] active:bg-[#000000] active:text-[#FFFFFF] text-lg"
 							>
 								Выйти
@@ -179,10 +218,7 @@ function Profile() {
 			</div>
 
 			<div className="mt-[24px] sm:mt-[60px]">
-				<h2
-					id="my_courses"
-					className="text-[24px] sm:text-[40px] mb-[24px] sm:mb-[40px] font-medium text-left leading-none"
-				>
+				<h2 id="my_courses" className="text-[24px] sm:text-[40px] mb-[24px] sm:mb-[40px] font-medium text-left leading-none">
 					Мои курсы
 				</h2>
 				<div className="flex flex-row flex-wrap gap-10 justify-start">
@@ -191,7 +227,8 @@ function Profile() {
 							<UserCards
 								key={courseItem._id}
 								courseId={courseItem._id}
-								image={courseItem.images.cardImage}
+								// ✅ Безопасно, если courseItem.images отсутствует — вернется fallback
+								image={courseItem.images?.cardImage || "/zagl.jpg"}
 								nameRu={courseItem.nameRU}
 								onDelete={handleDeleteCourse}
 							/>

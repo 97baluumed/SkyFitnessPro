@@ -1,177 +1,245 @@
-const BASE_URL = "https://fitness-pro-67b02-default-rtdb.europe-west1.firebasedatabase.app";
+// src/utils/api.ts
 
-// ✅ Интерфейсы для типизации
-export interface CourseType {
-	courseId?: string;
-	nameRu?: string;
-	image?: string;
-	workouts?: string[] | Record<string, true>; // ID тренировок
-}
+const API_BASE = "https://wedev-api.sky.pro/api/fitness";
 
-export interface TrainingType {
-	id: string;
-	_id: string;
-	images: {
-		cardImage: string;
-		courseImage: string;
-	};
-	nameRU: string;
-	description: string;
-	directions: string[];
-	fitting: string[];
-}
-
-export interface Exercise {
-	_id: string;
-	name: string;
-	quantity: number;
-	video: string;
-}
-
-// Используем Record<string, number> вместо any
-export type ExerciseProgress = Record<string, number>;
-
-// ✅ Добавить нового пользователя (обязательно для Register.tsx)
-export const addUser = async (uid: string, name: string): Promise<void> => {
-	const res = await fetch(`${BASE_URL}/users/${uid}.json`, {
-		method: "PUT",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({ name, uid }),
+// === Аутентификация ===
+export const registerUser = async (email: string, password: string) => {
+	const res = await fetch(`${API_BASE}/auth/register`, {
+		method: "POST",
+		body: JSON.stringify({ email, password }),
 	});
-	if (!res.ok) throw new Error(`Ошибка! Статус: ${res.status}`);
+
+	if (!res.ok) {
+		const errorText = await res.text();
+		throw new Error(errorText);
+	}
 };
 
-// ✅ Получить все курсы
-export const getCourse = async (): Promise<Record<string, CourseType>> => {
-	const res = await fetch(`${BASE_URL}/courses.json`);
-	if (!res.ok) throw new Error(`Ошибка! Статус: ${res.status}`);
-	return res.json();
-};
-
-// ✅ Получить курс по ID
-export const getCourseById = async (id: string): Promise<CourseType> => {
-	const res = await fetch(`${BASE_URL}/courses/${id}.json`);
-	if (!res.ok) throw new Error(`Ошибка! Статус: ${res.status}`);
-	return res.json();
-};
-
-// ✅ Получить тренировку по ID
-export const getWorkoutsById = async (id: string): Promise<TrainingType> => {
-	const res = await fetch(`${BASE_URL}/workouts/${id}.json`);
-	if (!res.ok) throw new Error(`Ошибка! Статус: ${res.status}`);
-	return res.json();
-};
-
-// ✅ Добавить курс пользователю
-export const addCourseToUser = async (uid: string, courseId: string): Promise<void> => {
-	const res = await fetch(`${BASE_URL}/users/${uid}/courses/${courseId}.json`, {
-		method: "PATCH",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({ id: courseId }),
+export const loginUser = async (email: string, password: string): Promise<{ token: string }> => {
+	const res = await fetch(`${API_BASE}/auth/login`, {
+		method: "POST",
+		body: JSON.stringify({ email, password }),
 	});
-	if (!res.ok) throw new Error(`Ошибка! Статус: ${res.status}`);
+
+	if (!res.ok) {
+		const error = await res.json();
+		throw new Error(error.message);
+	}
+
+	return await res.json(); // { token: "..." }
 };
 
-// ✅ Удалить курс у пользователя
-export const deleteCourseToUser = async (uid: string, courseId: string): Promise<void> => {
-	const res = await fetch(`${BASE_URL}/users/${uid}/courses/${courseId}.json`, {
+export const getCurrentUser = async (token: string) => {
+	const res = await fetch(`${API_BASE}/users/me`, {
+		method: "GET",
+		headers: {
+			Authorization: `Bearer ${token}`,
+		},
+	});
+
+	if (!res.ok) {
+		throw new Error("Ошибка при получении данных пользователя");
+	}
+
+	return await res.json(); // { email, selectedCourses: [...] }
+};
+
+// === Курсы ===
+export const getCourses = async () => {
+	const res = await fetch(`${API_BASE}/courses`);
+	return await res.json();
+};
+
+export const getCourseById = async (id?: string) => {
+	if (!id) {
+		console.warn("getCourseById: ID не передан");
+		return null;
+	}
+
+	const res = await fetch(`${API_BASE}/courses/${id}`);
+	if (!res.ok) {
+		throw new Error(`Ошибка при получении курса с ID: ${id}`);
+	}
+
+	return await res.json();
+};
+
+export const getCourse = getCourseById;
+export const getCourseByIdentifier = getCourseById;
+
+// ✅ ИСПРАВЛЕНО: getWorkoutsByCourse теперь принимает token
+export const getWorkoutsByCourse = async (courseId: string, token?: string) => {
+	const headers: Record<string, string> = {};
+	if (token) {
+		headers.Authorization = `Bearer ${token}`;
+	}
+
+	const res = await fetch(`${API_BASE}/courses/${courseId}/workouts`, {
+		headers,
+	});
+
+	if (!res.ok) {
+		throw new Error(`Ошибка при получении тренировок курса ${courseId}`);
+	}
+
+	return await res.json();
+};
+
+export const getWorkoutsById = getWorkoutsByCourse; // для совместимости
+
+// === Курсы пользователя ===
+export const addCourseToUser = async (token: string, courseId: string) => {
+	if (!courseId) {
+		throw new Error("courseId is required");
+	}
+	if (!token) {
+		throw new Error("token is required");
+	}
+
+	const res = await fetch(`${API_BASE}/users/me/courses`, {
+		method: "POST",
+		headers: {
+			Authorization: `Bearer ${token}`,
+		},
+		body: JSON.stringify({ courseId }),
+	});
+
+	if (!res.ok) {
+		const errorText = await res.text();
+		try {
+			const error = JSON.parse(errorText);
+			throw new Error(error.message || errorText);
+		} catch {
+			throw new Error(`Ошибка при добавлении курса: ${errorText}`);
+		}
+	}
+
+	return await res.json();
+};
+
+export const removeCourseFromUser = async (token: string, courseId: string): Promise<void> => {
+	const res = await fetch(`${API_BASE}/users/me/courses/${courseId}`, {
 		method: "DELETE",
+		headers: {
+			Authorization: `Bearer ${token}`,
+		},
 	});
-	if (!res.ok) throw new Error(`Ошибка! Статус: ${res.status}`);
+
+	// ✅ Считаем 500 + "не был добавлен" — успешной операцией
+	if (res.status === 500) {
+		const errorText = await res.text();
+		if (errorText.includes("не был добавлен")) {
+			return; // не выбрасываем, не логируем
+		}
+	}
+
+	if (!res.ok) {
+		const errorText = await res.text();
+		console.error(`❌ Ошибка при удалении курса ${courseId}:`, errorText);
+		throw new Error(`Ошибка при удалении курса: ${errorText}`);
+	}
+
+	if (res.status === 204) return;
+	return await res.json();
 };
 
-// ✅ Получить список курсов пользователя
-export const getUserCourses = async (uid: string): Promise<Record<string, CourseType> | null> => {
-	const res = await fetch(`${BASE_URL}/users/${uid}/courses.json`);
-	if (!res.ok) throw new Error(`Ошибка! Статус: ${res.status}`);
-	const data = await res.json();
-	return data !== null ? data : null;
+// Алиасы для совместимости
+export const deleteCourseToUser = removeCourseFromUser;
+export const getUserCourses = async (token: string) => {
+	return await getCurrentUser(token);
+};
+export const deleteProgress = removeCourseFromUser;
+
+// === Прогресс ===
+export const getProgress = async (token: string, courseId: string, workoutId?: string) => {
+	const url = workoutId
+		? `${API_BASE}/users/me/progress?courseId=${courseId}&workoutId=${workoutId}`
+		: `${API_BASE}/users/me/progress?courseId=${courseId}`;
+
+	const res = await fetch(url, {
+		method: "GET",
+		headers: {
+			Authorization: `Bearer ${token}`,
+		},
+	});
+
+	if (!res.ok) {
+		throw new Error("Ошибка при получении прогресса");
+	}
+
+	return await res.json();
 };
 
-// ✅ Получить данные курса пользователя (прогресс)
-export const getUserCourse = async (uid: string, courseId: string): Promise<Record<string, { quantity: number }> | null> => {
-	const res = await fetch(`${BASE_URL}/users/${uid}/courses/${courseId}/workouts.json`);
-	if (!res.ok) throw new Error(`Ошибка! Статус: ${res.status}`);
-	const data = await res.json();
-	return data !== null ? data : null;
-};
-
-// ✅ Добавить прогресс (с упражнениями)
-export const addRealQuantity = async (
-	uid: string,
+export const saveWorkoutProgress = async (
+	token: string,
 	courseId: string,
 	workoutId: string,
-	exercises: { name: string; quantity: number }[]
-): Promise<void> => {
-	const res = await fetch(`${BASE_URL}/users/${uid}/courses/${courseId}/workouts/${workoutId}.json`, {
-		method: "PUT",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({ exercises }),
-	});
-	if (!res.ok) throw new Error(`Ошибка! Статус: ${res.status}`);
-};
-
-// ✅ Получить прогресс (с упражнениями)
-export const getRealQuantity = async (
-	uid: string,
-	courseId: string,
-	workoutId: string
-): Promise<number[]> => {
-	const res = await fetch(`${BASE_URL}/users/${uid}/courses/${courseId}/workouts/${workoutId}/exercises.json`);
-	if (!res.ok) throw new Error(`Ошибка! Статус: ${res.status}`);
-	const data: { quantity: number }[] | null = await res.json();
-	if (!Array.isArray(data)) return [];
-	return data.map((item) => item.quantity);
-};
-
-// ✅ Добавить прогресс (без упражнений)
-export const addRealQuantityWithoutExercises = async (
-	uid: string,
-	courseId: string,
-	workoutId: string,
-	exercises: { [key: string]: { quantity: number } }
-): Promise<void> => {
-	const res = await fetch(`${BASE_URL}/users/${uid}/courses/${courseId}/workouts/${workoutId}.json`, {
+	progressData: number[]
+) => {
+	const res = await fetch(`${API_BASE}/courses/${courseId}/workouts/${workoutId}`, {
 		method: "PATCH",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({ exercises }),
+		headers: {
+			Authorization: `Bearer ${token}`,
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({ progressData }),
 	});
-	if (!res.ok) throw new Error(`Ошибка! Статус: ${res.status}`);
+
+	if (!res.ok) {
+		throw new Error("Ошибка при сохранении прогресса");
+	}
+
+	return await res.json();
 };
 
-// ✅ Получить прогресс (без упражнений)
-export const getRealQuantityWithoutExercises = async (
-	uid: string,
-	courseId: string,
-	workoutId: string
-): Promise<number | null> => {
-	const res = await fetch(`${BASE_URL}/users/${uid}/courses/${courseId}/workouts/${workoutId}/exercises.json`);
-	if (!res.ok) throw new Error(`Ошибка! Статус: ${res.status}`);
-	const data = await res.json() as number | null;
-	return data;
-};
-
-// ✅ Удалить прогресс
-export const deleteProgress = async (uid: string, courseId: string): Promise<void> => {
-	const res = await fetch(`${BASE_URL}/users/${uid}/courses/${courseId}/workouts.json`, {
+export const resetProgress = async (token: string, courseId: string) => {
+	const res = await fetch(`${API_BASE}/users/me/progress?courseId=${courseId}`, {
 		method: "DELETE",
+		headers: {
+			Authorization: `Bearer ${token}`,
+		},
 	});
-	if (!res.ok) throw new Error(`Ошибка! Статус: ${res.status}`);
+
+	if (!res.ok) {
+		throw new Error("Ошибка при сбросе прогресса");
+	}
+
+	return await res.json();
 };
 
-// ✅ Добавить имя пользователя
-export const addUserName = async (uid: string, name: string | undefined): Promise<void> => {
-	const res = await fetch(`${BASE_URL}/users/${uid}.json`, {
-		method: "PATCH",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({ name }),
-	});
-	if (!res.ok) throw new Error(`Ошибка! Статус: ${res.status}`);
+// === Вспомогательные функции (для обработки строк и количества) ===
+export const getRealQuantityWithoutExercises = (text: string): number => {
+	if (!text) return 0;
+	const match = text.match(/\d+/);
+	return match ? parseInt(match[0], 10) : 0;
 };
 
-// ✅ Получить имя пользователя
-export const getUserName = async (uid: string): Promise<{ name: string | undefined }> => {
-	const res = await fetch(`${BASE_URL}/users/${uid}.json`);
-	if (!res.ok) throw new Error(`Ошибка! Статус: ${res.status}`);
-	return res.json();
+// Алиасы — для совместимости
+export const getRealQuantity = getRealQuantityWithoutExercises;
+export const extractQuantity = getRealQuantityWithoutExercises;
+
+// === Дополнительные функции для работы с прогрессом ===
+export const addRealQuantityWithoutExercises = (text: string): string => {
+	if (!text) return "";
+	const quantity = getRealQuantityWithoutExercises(text);
+	if (quantity === 0) return text;
+
+	const prefix = text.replace(/\d+/, "");
+	if (!prefix.trim()) return `${quantity} ${text}`;
+
+	return prefix.trim() === "" ? `${quantity} ${text}` : text;
 };
+
+export const addRealQuantity = async (token: string, courseId: string, workoutId: string, quantityText: string): Promise<void> => {
+	const quantity = getRealQuantityWithoutExercises(quantityText);
+
+	if (quantity === 0) {
+		throw new Error("Не удалось извлечь количество из строки");
+	}
+
+	const progressData = Array.from({ length: quantity }, (_, i) => i + 1);
+	await saveWorkoutProgress(token, courseId, workoutId, progressData);
+};
+
+// Алиас для addRealQuantity без "WithoutExercises"
+export const addRealQuantityText = addRealQuantityWithoutExercises;

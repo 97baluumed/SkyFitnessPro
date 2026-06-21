@@ -1,9 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { signOut } from "firebase/auth";
-import { auth } from "../../utils/firebase";
-import { useUser } from "../../hooks/useUser";
-import { getUserName } from "../../utils/api";
+import { useUser } from "../../contexts/user"; // ✅ из contexts/user
 
 interface HeaderProps {
 	openModal: () => void;
@@ -12,8 +9,8 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ openModal }) => {
 	const [modalVisible, setModalVisible] = useState(false);
 	const modalRef = useRef<HTMLDivElement>(null);
-	const { user, logoutUser } = useUser();
-	const [name, setName] = useState(user?.displayName || "");
+	const { user, logout } = useUser(); // ✅ logout из user context
+	const [name, setName] = useState(user?.name || "");
 	const navigate = useNavigate();
 
 	const toggleModal = () => {
@@ -26,11 +23,12 @@ const Header: React.FC<HeaderProps> = ({ openModal }) => {
 		}
 	};
 
+	// 🔍 Используем уже сохранённое имя из user context (от API)
+	// getUserName не нужен, т.к. user.name обновляется при login/register
+
 	useEffect(() => {
-		if (user?.uid) {
-			getUserName(user.uid).then((data) => {
-				setName(data?.name || "");
-			});
+		if (user?.name) {
+			setName(user.name);
 		}
 	}, [user]);
 
@@ -57,8 +55,8 @@ const Header: React.FC<HeaderProps> = ({ openModal }) => {
 					}
 				>
 					<div className="mb-[30px] flex gap-[10px] flex-col">
-						<p data-testid="user-email" className="hidden sm:block text-[24px]">{name || user?.email || "Default Name"}</p>
-						<p className="text-[16px] font-normal text-center text-[#999999]">{user?.email}</p>
+						<p data-testid="user-name" className="hidden sm:block text-[24px]">{name || user?.name || "Default Name"}</p>
+						<p className="text-[16px] font-normal text-center text-[#999999]">Пользователь</p>
 					</div>
 
 					<div className="flex flex-col items-center gap-4">
@@ -71,13 +69,11 @@ const Header: React.FC<HeaderProps> = ({ openModal }) => {
 						</Link>
 
 						<button
-							onClick={() =>
-								signOut(auth).then(() => {
-									toggleModal();
-									logoutUser();
-									navigate("/");
-								})
-							}
+							onClick={() => {
+								toggleModal();
+								logout(); // ✅ локальный logout
+								navigate("/");
+							}}
 							className="flex text-black text-lg font-normal flex-row justify-center items-center p-4 gap-2 w-full h-[52px] border border-black rounded-[46px] hover:bg-[#E9ECED] active:bg-[#000000] active:text-[#FFFFFF]"
 						>
 							Выйти
@@ -87,7 +83,7 @@ const Header: React.FC<HeaderProps> = ({ openModal }) => {
 				{user ? (
 					<div onClick={toggleModal} className="flex gap-[12px] items-center cursor-pointer">
 						<img src="/profile-photo-mini.svg" alt="profile-photo-mini" />
-						<p className="hidden sm:block text-[24px]">{name || user?.email || "Default Name"}</p>
+						<p className="hidden sm:block text-[24px]">{name || user.name || "Default Name"}</p>
 
 						<svg
 							className="hidden sm:block"

@@ -1,8 +1,11 @@
+// src/components/Modal/TrainingSelectModal/TrainingSelectModal.tsx
+
 import React, { useEffect, useState } from "react";
 import "./TrainingSelectModal.css";
 import TrainingLink from "./TrainingLink/TrainingLink";
-import { getCourseById, getWorkoutsById } from "../../../utils/api";
+import { getWorkoutsByCourse } from "../../../utils/api";
 import { Exercise } from "../../../types/training";
+import { useUser } from "../../../contexts/user"; // ✅ добавлен хук
 
 interface ModalProps {
 	closeModal: () => void;
@@ -10,37 +13,30 @@ interface ModalProps {
 }
 
 const TrainingSelectModal: React.FC<ModalProps> = ({ closeModal, courseId }) => {
-	const [courseData, setCourseData] = useState([]);
 	const [workoutInfo, setWorkoutInfo] = useState<Exercise[]>([]);
 	const [isLoaded, setIsLoaded] = useState(false);
+	const { user } = useUser(); // ✅ получаем user
 
 	useEffect(() => {
-		getCourseById(courseId)
-			.then((data) => {
-				setCourseData(data.workouts);
-			})
-			.catch((error: unknown) => console.error(error));
-	}, [courseId]);
-
-	useEffect(() => {
-		async function fetchWorkoutInfo() {
-			if (courseData.length > 0) {
-				try {
-					const workoutInfoArray = await Promise.all(
-						courseData.map(async (workout) => {
-							const response = await getWorkoutsById(workout);
-							return response;
-						}),
-					);
-					setWorkoutInfo(workoutInfoArray);
-					setIsLoaded(true);
-				} catch (error: unknown) {
-					console.error("Ошибка при получении информации о курсе:", error);
-				}
+		const fetchWorkoutInfo = async () => {
+			if (!courseId || !user?.token) {
+				setIsLoaded(true);
+				return;
 			}
-		}
+
+			try {
+				// ✅ Получаем массив тренировок напрямую по courseId и token
+				const workouts = await getWorkoutsByCourse(courseId, user.token);
+				setWorkoutInfo(Array.isArray(workouts) ? workouts : []);
+			} catch (error) {
+				console.error("❌ Ошибка при получении информации о тренировках:", error);
+			} finally {
+				setIsLoaded(true);
+			}
+		};
+
 		fetchWorkoutInfo();
-	}, [courseData]);
+	}, [courseId, user?.token]); // ✅ зависимости: courseId и user.token
 
 	return (
 		<div className="fixed z-40 inset-0 flex justify-center items-center bg-gray-900 bg-opacity-50" onClick={closeModal}>
@@ -54,13 +50,21 @@ const TrainingSelectModal: React.FC<ModalProps> = ({ closeModal, courseId }) => 
 
 						<div className="flex flex-col gap-3 w-full h-[374px] overflow-y-auto leading-5 pr-[20px]">
 							{workoutInfo.map((workout, index) => (
-								<TrainingLink key={index} trainingId={workout._id} name={workout.name} courseId={courseId} />
+								<TrainingLink
+									key={index}
+									trainingId={workout._id}
+									name={workout.name}
+									courseId={courseId}
+								/>
 							))}
+							{workoutInfo.length === 0 && (
+								<p className="text-center text-gray-500 mt-4">Тренировок пока нет</p>
+							)}
 						</div>
 					</div>
 				</div>
 			) : (
-				<p className="text-black text">Загрузка</p>
+				<p className="text-black text">Загрузка...</p>
 			)}
 		</div>
 	);

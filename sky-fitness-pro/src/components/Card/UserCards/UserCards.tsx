@@ -1,107 +1,117 @@
+// src/components/Card/UserCards/UserCards.tsx
+
 import { useState, useEffect } from "react";
 import TrainingSelectModal from "../../Modal/TrainingSelectModal/TrainingSelectModal";
 import { CardType } from "../../../types/cards";
 import {
 	deleteCourseToUser,
-	deleteProgress,
-	getCourseById,
-	getRealQuantityWithoutExercises,
-	getWorkoutsById,
+	getProgress,
+	getWorkoutsByCourse,
+	resetProgress,
 } from "../../../utils/api";
-import { useUser } from "../../../hooks/useUser";
-import { TrainingType } from "../../../types/training";
+import { useUser } from "../../../contexts/user";
 
 type UserCardsProps = CardType & { onDelete: (courseId: string) => void };
 
 function UserCards({ courseId, nameRu, onDelete }: UserCardsProps) {
 	const [isTrainingSelectModalOpen, setTrainingSelectModalOpen] = useState(false);
-	const [courseData, setCourseData] = useState([]);
-	const [workoutInfo, setWorkoutInfo] = useState<TrainingType[]>([]);
-	const [completeArray, setCompleteArray] = useState<TrainingType[]>([]);
+	const [workoutInfo, setWorkoutInfo] = useState<{ _id: string; nameRU: string; description: string }[]>([]);
+	const [progressData, setProgressData] = useState<number[]>([]);
 	const [isLoading, setIsLoading] = useState(false);
 	const { user } = useUser();
 	const FULL_PROGRESS = 100;
 
 	const getImageByCourseId = (id: string): string => {
 		switch (id) {
-			case "ab1c3f": return "/bodyflex.jpg";
-			case "fi67sm": return "/fitness.jpg";
-			case "kfpq8e": return "/stepaerobics.jpg";
-			case "q02a6i": return "/stretching.jpg";
-			case "ypox9r": return "/yoga.jpg";
-			default: return "/bodyflex.jpg";
+			case "ab1c3f": return "/yoga.jpg";
+			case "kfpq8e": return "/stretching.jpg";
+			case "ypox9r": return "/fitness.jpg";
+			case "6i67sm": return "/stepaerobics.jpg";
+			case "q02a6i": return "/bodyFlex.jpg";
+			default: return "/zagl.jpg";
 		}
 	};
 
 	const openTrainingSelectModal = () => setTrainingSelectModalOpen(true);
 	const closeTrainingSelectModal = () => setTrainingSelectModalOpen(false);
 
+	// ✅ ИСПРАВЛЕНО: getWorkoutsByCourse с token
 	useEffect(() => {
-		if (user && user.uid) {
-			getCourseById(courseId)
-				.then((data) => {
-					setCourseData(data.workouts);
-				})
-				.catch((error: unknown) => console.error(error));
-		}
-	}, [courseId, user]);
+		if (!user?.uid || !user?.token) return;
 
+		const fetchWorkouts = async () => {
+			try {
+				const workouts = await getWorkoutsByCourse(courseId, user.token);
+				setWorkoutInfo(Array.isArray(workouts) ? workouts : []);
+			} catch (error) {
+				console.error("❌ Ошибка при получении тренировок:", error);
+			}
+		};
+		fetchWorkouts();
+	}, [courseId, user?.uid, user?.token]);
+
+	// ✅ Получаем прогресс по тренировкам курса
 	useEffect(() => {
-		const fetchWorkoutInfo = async () => {
-			if (courseData.length > 0) {
+		if (workoutInfo.length > 0 && user?.uid && user?.token) {
+			const fetchProgress = async () => {
 				try {
-					const workoutInfoArray = await Promise.all(
-						courseData.map(async (workout) => {
-							const response = await getWorkoutsById(workout);
-							return response;
-						}),
+					const allProgresses = await Promise.all(
+						workoutInfo.map(async (workout) => {
+							try {
+								const progress = await getProgress(user.token, courseId, workout._id);
+								return Array.isArray(progress) ? progress.length : 0;
+							} catch {
+								return 0;
+							}
+						})
 					);
-					setWorkoutInfo(workoutInfoArray);
-				} catch (error: unknown) {
-					console.error("Ошибка при получении информации о курсе:", error);
+					setProgressData(allProgresses);
+					setIsLoading(true);
+				} catch (error) {
+					console.error("❌ Ошибка при получении прогресса:", error);
+					setIsLoading(true);
 				}
-			}
-		};
-		fetchWorkoutInfo();
-	}, [courseData]);
+			};
+			fetchProgress();
+		} else {
+			setIsLoading(true);
+		}
+	}, [workoutInfo, user?.uid, user?.token, courseId]);
 
-	useEffect(() => {
-		const fetchCompleteData = async () => {
-			if (workoutInfo.length > 0 && user && user.uid) {
-				const trainingArray = await Promise.all(
-					workoutInfo.map(async (workout) => {
-						const data = await getRealQuantityWithoutExercises(user.uid, courseId, workout._id);
-						return data !== null ? data : null;
-					}),
-				);
-				setCompleteArray(trainingArray.filter((data) => data !== null));
-			}
-		};
-		fetchCompleteData();
-		setIsLoading(true);
-	}, [workoutInfo, user, courseId]);
+	// ✅ Вычисляем процент выполнения
+	const visitedRatio = workoutInfo.length > 0
+		? (progressData.reduce((acc, val) => acc + val, 0) / workoutInfo.length) * 100
+		: 0;
 
-	function deleteCourse() {
-		if (user && user.uid) {
-			deleteCourseToUser(user.uid, courseId)
-				.then(() => {
-					onDelete(courseId);
-				})
-				.catch((error: unknown) => {
-					console.error("Ошибка при удалении курса:", error);
-				});
+	// ✅ Удаление курса
+	async function deleteCourse() {
+		if (!user?.uid || !user?.token) return;
+
+		try {
+			await deleteCourseToUser(user.token, courseId);
+			onDelete(courseId); // ✅ вызываем только при успехе
+		} catch (error) {
+			// 🔍 Логируем, но не выбрасываем дальше
+			if (error instanceof Error && (error as Error).message.includes("не был добавлен")) {
+				console.warn(`ℹ️ Курс ${courseId} уже удалён или не был добавлен`);
+			} else {
+				console.error("❌ Ошибка при удалении курса:", error);
+			}
 		}
 	}
 
+	// ✅ Сброс прогресса (удаляет прогресс, но оставляет курс)
 	function restartCourse() {
-		if (user && user.uid) {
-			deleteProgress(user.uid, courseId).then(() => {
-				setCompleteArray([]);
-			});
-		}
-	}
+		if (!user?.uid || !user?.token) return;
 
-	const visitedRatio = workoutInfo.length > 0 ? (completeArray.length / workoutInfo.length) * 100 : 0;
+		resetProgress(user.token, courseId)
+			.then(() => {
+				setProgressData([]);
+			})
+			.catch((error) => {
+				console.error("❌ Ошибка при сбросе прогресса:", error);
+			});
+	}
 
 	return (
 		<>
@@ -178,7 +188,7 @@ function UserCards({ courseId, nameRu, onDelete }: UserCardsProps) {
 					</div>
 				</div>
 			) : (
-				<p>Загрузка</p>
+				<p>Загрузка...</p>
 			)}
 		</>
 	);
