@@ -1,4 +1,3 @@
-// src/App.tsx
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import Main from "./app/Main/Main";
 import Profile from "./components/Profile/Profile";
