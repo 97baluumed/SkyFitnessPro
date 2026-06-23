@@ -170,6 +170,7 @@ function Profile() {
 							<button
 								className="flex items-end h-[48px]"
 								onClick={isEditingName ? handleSaveName : handleEditName}
+								aria-label={isEditingName ? "Сохранить имя" : "Редактировать имя"} // ✅ Добавлено!
 							>
 								<svg className="w-[35px] h-[35px]">
 									{isEditingName ? (
