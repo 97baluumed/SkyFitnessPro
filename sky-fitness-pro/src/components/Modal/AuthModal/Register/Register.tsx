@@ -1,3 +1,4 @@
+// src/components/Modal/AuthModal/Register/Register.tsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { registerUser, loginUser } from "../../../../utils/api";
@@ -58,36 +59,36 @@ export const Register = ({
     };
 
     return (
-        <div className="flex flex-col items-center gap-8 w-full">
+        <div className="flex flex-col items-center gap-[10px] w-full">
             <p className="text-[24px] font-bold mb-4">Регистрация</p>
             <form onSubmit={handleSubmit}>
-                <div className="flex flex-col gap-2 w-full">
+                <div className="flex flex-col gap-[10px] w-full">
                     <input
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="Email"
-                        className="w-full h-[52px] border border-gray-300 rounded-[8px] p-[18px]"
+                        className="w-[280px] h-[52px] border border-gray-300 rounded-[8px] p-[18px]"
                     />
                     <input
                         type="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="Пароль"
-                        className="w-full h-[52px] border border-gray-300 rounded-[8px] p-[18px]"
+                        className="w-[280px] h-[52px] border border-gray-300 rounded-[8px] p-[18px]"
                     />
                     {error && <p className="text-red-500">{error}</p>}
                 </div>
                 <button
                     type="submit"
-                    className="flex text-black text-lg font-normal flex-row justify-center items-center p-4 gap-2 w-full h-[52px] bg-[#BCEC30] hover:bg-[#C6FF00] active:bg-[#000000] active:text-[#FFFFFF] rounded-[46px] mt-4"
+                    className="flex text-black text-lg font-normal flex-row justify-center items-center p-4 gap-2 w-[280px] h-[52px] bg-[#BCEC30] hover:bg-[#C6FF00] active:bg-[#000000] active:text-[#FFFFFF] rounded-[46px] mt-4"
                 >
                     Зарегистрироваться
                 </button>
             </form>
             <button
                 onClick={() => setIsRegisterMode(false)}
-                className="flex text-black text-lg font-normal flex-row justify-center items-center p-4 gap-2 w-full h-[52px] border border-black rounded-[46px] hover:bg-[#E9ECED] active:bg-[#000000] active:text-[#FFFFFF]"
+                className="flex text-black text-lg font-normal flex-row justify-center items-center p-4 gap-2 w-[280px] h-[52px] border border-black rounded-[46px] hover:bg-[#E9ECED] active:bg-[#000000] active:text-[#FFFFFF]"
             >
                 Войти
             </button>
