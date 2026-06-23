@@ -1,3 +1,4 @@
+// src/contexts/user.tsx
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
 type User = {
@@ -12,16 +13,19 @@ interface UserContextType {
 	user: User | null;
 	setUser: (user: User | null) => void;
 	logout: () => void;
+	isLoadingUser: boolean; // ✅ Новое состояние
 }
 
 const UserContext = createContext<UserContextType>({
 	user: null,
 	setUser: () => { },
 	logout: () => { },
+	isLoadingUser: true, // ✅ По умолчанию — загрузка
 });
 
 export const UserProvider = ({ children }: { children: ReactNode }) => {
 	const [user, setUser] = useState<User | null>(null);
+	const [isLoadingUser, setIsLoadingUser] = useState(true); // ✅ Новое состояние
 
 	useEffect(() => {
 		const storedUser = localStorage.getItem("fitness_user");
@@ -41,6 +45,9 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 				localStorage.removeItem("fitness_token");
 			}
 		}
+
+		// ✅ Ставим загрузку в false ПОСЛЕ проверки (даже если user === null)
+		setIsLoadingUser(false);
 	}, []);
 
 	const handleSetUser = (userData: User | null) => {
@@ -59,7 +66,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 	};
 
 	return (
-		<UserContext.Provider value={{ user, setUser: handleSetUser, logout: handleLogout }}>
+		<UserContext.Provider value={{ user, setUser: handleSetUser, logout: handleLogout, isLoadingUser }}>
 			{children}
 		</UserContext.Provider>
 	);
