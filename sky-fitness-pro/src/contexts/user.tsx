@@ -1,4 +1,3 @@
-// src/contexts/user.tsx
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
 type User = {
@@ -13,19 +12,19 @@ interface UserContextType {
 	user: User | null;
 	setUser: (user: User | null) => void;
 	logout: () => void;
-	isLoadingUser: boolean; // ✅ Новое состояние
+	isLoadingUser: boolean;
 }
 
 const UserContext = createContext<UserContextType>({
 	user: null,
 	setUser: () => { },
 	logout: () => { },
-	isLoadingUser: true, // ✅ По умолчанию — загрузка
+	isLoadingUser: true,
 });
 
 export const UserProvider = ({ children }: { children: ReactNode }) => {
 	const [user, setUser] = useState<User | null>(null);
-	const [isLoadingUser, setIsLoadingUser] = useState(true); // ✅ Новое состояние
+	const [isLoadingUser, setIsLoadingUser] = useState(true);
 
 	useEffect(() => {
 		const storedUser = localStorage.getItem("fitness_user");
@@ -46,7 +45,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 			}
 		}
 
-		// ✅ Ставим загрузку в false ПОСЛЕ проверки (даже если user === null)
 		setIsLoadingUser(false);
 	}, []);
 
