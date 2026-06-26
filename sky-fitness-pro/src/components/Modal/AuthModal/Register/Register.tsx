@@ -1,4 +1,3 @@
-// src/components/Modal/AuthModal/Register/Register.tsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { registerUser, loginUser } from "../../../../utils/api";
